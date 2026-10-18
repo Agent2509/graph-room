@@ -12,7 +12,7 @@ A complete, production-grade **Graph RAG (Graph Retrieval-Augmented Generation)*
 ## 🚀 Key Highlights
 
 * **100% Free Inference**:
-  * **LLM**: Powered by **Groq Cloud Free Tier** (`llama-3.3-70b-versatile` and `llama-3.1-8b-instant`) with ultra-fast generation and high throughput.
+  * **LLM**: Powered by **Groq Cloud Free Tier** (default `openai/gpt-oss-20b`, with automatic failover to `openai/gpt-oss-120b` and Llama models) with ultra-fast generation and high throughput.
   * **Embeddings**: Powered by **FastEmbed** (`bge-small-en-v1.5`) running locally on CPU in milliseconds via ONNX Runtime — **0 API cost, 0 rate limits, minimal RAM (~100MB)**.
 * **Embedded Storage**:
   * Graph Engine: Built on **NetworkX** with multi-relational attributes, $k$-hop ego-network traversals, and JSON persistence — **zero external database setup or hosting fees**.

@@ -326,14 +326,14 @@ def get_engine() -> GraphRAG:
 
         # Preserve existing chunks if re-configuring engine
         existing_chunks = st.session_state.rag_engine.chunks_map if st.session_state.rag_engine else {}
-        
+
         st.session_state.rag_engine = GraphRAG(
             llm=llm,
             embedding_model=embedding,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
         )
-        st.session_state.rag_engine.chunks_map = existing_chunks
+        st.session_state.rag_engine.set_chunks(existing_chunks)
 
         # Auto-load saved index from disk if present!
         if (STORAGE_DIR / "graph.json").exists() and len(st.session_state.rag_engine.chunks_map) == 0:

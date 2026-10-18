@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -125,6 +126,18 @@ class GraphRAG:
         doc_id = Path(filename).stem
         return self.add_text(text, doc_id=doc_id, metadata={"source": filename}, hierarchical=hierarchical)
 
+    def set_chunks(self, mapping: Dict[str, TextChunk]) -> None:
+        """Replace staged chunks in place and rebind search engines to the same dict."""
+        snapshot = dict(mapping)
+        self.chunks_map.clear()
+        self.chunks_map.update(snapshot)
+        self._init_search_engines()
+
+    def _cache_namespace(self) -> str:
+        model_id = getattr(self.llm, "model", None) or type(self.llm).__name__
+        slug = re.sub(r"[^a-zA-Z0-9]+", "_", str(model_id)).strip("_").lower()
+        return f"{slug}_{self.chunker.chunk_size}_{self.chunker.chunk_overlap}"
+
     def build_index(
         self,
         batch_size: int = 3,
@@ -144,7 +157,7 @@ class GraphRAG:
         if cache_dir:
             c_dir = Path(cache_dir)
             c_dir.mkdir(parents=True, exist_ok=True)
-            cache_path = c_dir / "extraction_cache.json"
+            cache_path = c_dir / f"extraction_cache_{self._cache_namespace()}.json"
             if cache_path.exists():
                 try:
                     with open(cache_path, "r", encoding="utf-8") as f:
@@ -342,7 +355,7 @@ class GraphRAG:
         if (dir_p / "chunks.json").exists():
             with open(dir_p / "chunks.json", "r", encoding="utf-8") as f:
                 raw_chunks = json.load(f)
-            self.chunks_map = {c["id"]: TextChunk(**c) for c in raw_chunks}
+            self.set_chunks({c["id"]: TextChunk(**c) for c in raw_chunks})
         if (dir_p / "parent_map.json").exists():
             with open(dir_p / "parent_map.json", "r", encoding="utf-8") as f:
                 self.parent_map = json.load(f)

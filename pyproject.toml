@@ -18,6 +18,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "streamlit>=1.35.0",
     "pyvis>=0.3.2",
+    "flashrank>=0.2.9",
     "fastapi>=0.111.0",
     "uvicorn>=0.30.0",
     "python-multipart>=0.0.9",

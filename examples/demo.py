@@ -20,7 +20,7 @@ def main():
     # 1. Determine provider
     api_key = os.getenv("GROQ_API_KEY")
     if api_key:
-        print("[+] Using Groq LLM (llama-3.3-70b-versatile) + FastEmbed ONNX embeddings")
+        print("[+] Using Groq LLM (openai/gpt-oss-20b) + FastEmbed ONNX embeddings")
         llm = GroqLLM(api_key=api_key)
     else:
         print("[!] No GROQ_API_KEY found in environment. Using deterministic MockLLM + FastEmbed.")
@@ -42,7 +42,8 @@ def main():
     # 4. Build Knowledge Graph index
     print("\n[2] Building Knowledge Graph & Vector Index...")
     result = rag.build_index(
-        progress_callback=lambda msg, progress: print(f"    [{int(progress*100):02d}%] {msg}")
+        progress_callback=lambda msg, progress: print(f"    [{int(progress*100):02d}%] {msg}"),
+        cache_dir="./data/demo_cache",
     )
     print(f"[+] Indexing result: {result}")
 

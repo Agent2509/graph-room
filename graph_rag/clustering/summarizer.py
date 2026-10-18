@@ -105,11 +105,13 @@ class CommunitySummarizer:
         max_summaries: int = 15,
     ) -> None:
         """Summarize communities with LLM and heuristic fallbacks to ensure full coverage."""
-        # Sort communities by size descending so largest clusters get prioritized
-        sorted_communities = sorted(communities, key=lambda c: len(c), reverse=True)
+        # Keep each community's original index (matches CommunityDetector's node
+        # annotation) while prioritizing the largest clusters for LLM calls.
+        indexed = list(enumerate(communities))
+        indexed.sort(key=lambda pair: len(pair[1]), reverse=True)
 
-        for comm_id, node_list in enumerate(sorted_communities):
-            if comm_id < max_summaries and len(node_list) >= 2:
+        for position, (comm_id, node_list) in enumerate(indexed):
+            if position < max_summaries and len(node_list) >= 2:
                 try:
                     community_obj = self.summarize_community(
                         community_id=comm_id,

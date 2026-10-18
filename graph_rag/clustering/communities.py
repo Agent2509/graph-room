@@ -13,7 +13,11 @@ class CommunityDetector:
         self.min_community_size = min_community_size
 
     def detect_communities(self, graph_store: GraphStore) -> List[List[str]]:
-        """Detect entity clusters using Louvain modularity optimization."""
+        """Detect entity clusters using Louvain modularity optimization.
+
+        The returned list order is authoritative: a cluster's index equals the
+        ``community_id`` annotated on its member nodes in ``graph_store``.
+        """
         if graph_store.graph.number_of_nodes() == 0:
             return []
 

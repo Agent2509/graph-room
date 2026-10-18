@@ -10,12 +10,12 @@ class EntityResolver:
 
     def __init__(self):
         self.corporate_suffixes = [
-            r"\bInc\.?\b",
-            r"\bLLC\.?\b",
-            r"\bCorp\.?\b",
-            r"\bCorporation\b",
-            r"\bLtd\.?\b",
-            r"\bCo\.?\b",
+            r"Inc\.?$",
+            r"LLC\.?$",
+            r"Corp\.?$",
+            r"Corporation$",
+            r"Ltd\.?$",
+            r"Co\.?$",
         ]
         self.honorifics = [
             r"\bDr\.?\b",
@@ -34,7 +34,7 @@ class EntityResolver:
             cleaned = re.sub(rf"^{honorific}\s+", "", cleaned, flags=re.IGNORECASE).strip()
 
         for suffix in self.corporate_suffixes:
-            cleaned = re.sub(rf",?\s+{suffix}$", "", cleaned, flags=re.IGNORECASE).strip()
+            cleaned = re.sub(rf"\s+{suffix}\b$", "", cleaned, flags=re.IGNORECASE).strip()
 
         cleaned = cleaned.rstrip(",.")
         return cleaned

@@ -23,10 +23,15 @@ app = FastAPI(
 )
 
 # Enable CORS for cross-origin frontend clients
+_cors_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:8501,http://localhost:8000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -67,6 +72,7 @@ class QueryResponse(BaseModel):
     search_mode: str
     cited_entities: List[Dict[str, Any]]
     cited_relations: List[Dict[str, Any]]
+    cited_chunks: List[Dict[str, Any]]
     graph_context: str
 
 
@@ -123,6 +129,7 @@ def execute_query(req: QueryRequest):
         search_mode=res.search_mode,
         cited_entities=[e.model_dump() for e in res.cited_entities],
         cited_relations=[r.model_dump() for r in res.cited_relations],
+        cited_chunks=[c.model_dump() for c in res.cited_chunks],
         graph_context=res.graph_context_text,
     )
 

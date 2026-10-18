@@ -25,7 +25,7 @@ def test_pipeline_end_to_end():
 
     # 3. Build index
     progress_updates = []
-    result = rag.build_index(progress_callback=lambda msg, p: progress_updates.append(p))
+    result = rag.build_index(progress_callback=lambda msg, p: progress_updates.append(p), cache_dir=None)
 
     assert result["status"] == "success"
     assert len(progress_updates) > 0
