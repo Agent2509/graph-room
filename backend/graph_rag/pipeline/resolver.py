@@ -12,6 +12,7 @@ def normalize_name(name: str) -> str:
     cleaned = name.strip()
     cleaned = re.sub(r"^[\"']|[\"']$", "", cleaned).strip()
     cleaned = re.sub(r"^[Tt]he\s+", "", cleaned).strip()
+    cleaned = re.sub(r"['\u2019]s$", "", cleaned).strip()
     for honorific in HONORIFICS:
         cleaned = re.sub(rf"^{honorific}\s+", "", cleaned, flags=re.IGNORECASE).strip()
     for suffix in CORPORATE:

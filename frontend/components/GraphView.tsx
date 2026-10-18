@@ -89,7 +89,7 @@ export default function GraphView({
 
 
   useEffect(() => {
-    const timer = window.setTimeout(() => graphRef.current?.zoomToFit(450, 90), 900);
+    const timer = window.setTimeout(() => graphRef.current?.zoomToFit(450, 110), 900);
     return () => window.clearTimeout(timer);
   }, [data]);
 
@@ -109,7 +109,7 @@ export default function GraphView({
         cooldownTicks={160}
         warmupTicks={40}
         d3VelocityDecay={0.32}
-        onEngineStop={() => graphRef.current?.zoomToFit(500, 70)}
+        onEngineStop={() => graphRef.current?.zoomToFit(500, 110)}
         onBackgroundClick={() => setFocus(null)}
         onNodeClick={(node: any) => {
           setFocus((current) => (current === node.id ? null : node.id));
@@ -117,6 +117,7 @@ export default function GraphView({
         }}
         linkColor={(link: GraphLink) => {
           if (link.kind === "mention") return "rgba(95,127,140,0.28)";
+          if (link.kind === "cooccur") return "rgba(237,231,218,0.1)";
           const set = activeRef.current;
           if (!set) return "rgba(237,231,218,0.16)";
           return set.has(link.src) && set.has(link.dst)
@@ -144,7 +145,12 @@ export default function GraphView({
             ctx.stroke();
           }
 
-          if (scale > 0.55 || (activeRef.current?.has(node.id) ?? false)) {
+          const focused = activeRef.current;
+          if (
+            node.type === "DOCUMENT" ||
+            scale > 0.7 ||
+            (focused !== null && focused.has(node.id))
+          ) {
             const fontSize = Math.max(7, 11 / scale);
             ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
             ctx.textAlign = "left";

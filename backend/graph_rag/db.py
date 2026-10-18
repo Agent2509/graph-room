@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS edges (
   PRIMARY KEY (src, dst, rel)
 );
 
+CREATE TABLE IF NOT EXISTS chunk_pairs (
+  chunk_id TEXT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+  src TEXT NOT NULL,
+  dst TEXT NOT NULL,
+  PRIMARY KEY (chunk_id, src, dst)
+);
+
 CREATE TABLE IF NOT EXISTS entity_mentions (
   name TEXT NOT NULL REFERENCES entities(name) ON DELETE CASCADE,
   chunk_id TEXT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,

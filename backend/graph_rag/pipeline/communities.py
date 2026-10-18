@@ -14,6 +14,7 @@ import networkx as nx
 from graph_rag.db import Database
 from graph_rag.models import Community
 from graph_rag.pipeline import vectors
+from graph_rag.pipeline.graph import cooccurrence_pairs
 
 SUMMARY_SYSTEM = """You are an analyst writing a short report about a cluster of related
 entities from a knowledge graph.
@@ -33,6 +34,9 @@ def detect(conn: sqlite3.Connection) -> list[list[str]]:
     graph.add_nodes_from(row["name"] for row in conn.execute("SELECT name FROM entities"))
     graph.add_edges_from(
         (row["src"], row["dst"]) for row in conn.execute("SELECT src, dst FROM edges")
+    )
+    graph.add_edges_from(
+        (left, right) for left, right, _ in cooccurrence_pairs(conn)
     )
     if graph.number_of_nodes() == 0:
         return []

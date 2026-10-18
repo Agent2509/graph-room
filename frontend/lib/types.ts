@@ -39,7 +39,7 @@ export type GraphLink = {
   rel: string;
   description: string;
   weight: number;
-  kind?: "relation" | "mention";
+  kind?: "relation" | "mention" | "cooccur";
 };
 
 export type GraphPayload = { nodes: GraphNode[]; edges: GraphLink[] };

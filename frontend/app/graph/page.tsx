@@ -18,6 +18,8 @@ export default function GraphPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [minDegree, setMinDegree] = useState(false);
   const [showMentions, setShowMentions] = useState(true);
+  const [showCooccur, setShowCooccur] = useState(true);
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [error, setError] = useState("");
 
@@ -42,19 +44,32 @@ export default function GraphPage() {
     return () => window.removeEventListener(CHANGED, handler);
   }, [load]);
 
+  const degreeById = useMemo(() => {
+    const degrees = new Map<string, number>();
+    for (const link of links) {
+      degrees.set(link.src, (degrees.get(link.src) ?? 0) + 1);
+      degrees.set(link.dst, (degrees.get(link.dst) ?? 0) + 1);
+    }
+    return degrees;
+  }, [links]);
+
   const visibleNodes = useMemo(() => {
-    const base = showMentions ? nodes : nodes.filter((node) => node.type !== "DOCUMENT");
+    const base = nodes
+      .filter((node) => showMentions || node.type !== "DOCUMENT")
+      .filter((node) => !hiddenTypes.has(node.type));
     if (!minDegree || links.length === 0) return base;
 
-    const entities = base.filter((node) => node.type !== "DOCUMENT" && node.degree > 0);
-    const entityIds = new Set(entities.map((node) => node.id));
+    const connected = base.filter(
+      (node) => node.type !== "DOCUMENT" && (degreeById.get(node.id) ?? 0) > 0,
+    );
+    const ids = new Set(connected.map((node) => node.id));
     const documents = base.filter(
       (node) =>
         node.type === "DOCUMENT" &&
-        links.some((link) => link.src === node.id && entityIds.has(link.dst)),
+        links.some((link) => link.src === node.id && ids.has(link.dst)),
     );
-    return [...entities, ...documents];
-  }, [links, minDegree, nodes, showMentions]);
+    return [...connected, ...documents];
+  }, [degreeById, hiddenTypes, links, minDegree, nodes, showMentions]);
 
   const visibleLinks = useMemo(() => {
     const keep = new Set(visibleNodes.map((node) => node.id));
@@ -62,9 +77,10 @@ export default function GraphPage() {
       (link) =>
         keep.has(link.src) &&
         keep.has(link.dst) &&
-        (showMentions || link.kind !== "mention"),
+        (showMentions || link.kind !== "mention") &&
+        (showCooccur || link.kind !== "cooccur"),
     );
-  }, [links, showMentions, visibleNodes]);
+  }, [links, showCooccur, showMentions, visibleNodes]);
 
   return (
     <div className="graph-wrap">
@@ -86,7 +102,18 @@ export default function GraphPage() {
             />
             document links
           </label>
-          <span>{visibleNodes.length} shown</span>
+          <label>
+            <input
+              type="checkbox"
+              checked={showCooccur}
+              onChange={(event) => setShowCooccur(event.target.checked)}
+            />
+            co-occurrence
+          </label>
+          <span>
+            {visibleNodes.length}
+            {visibleNodes.length === nodes.length ? " shown" : ` of ${nodes.length}`}
+          </span>
         </div>
         {visibleNodes.length === 0 ? (
           <div className="empty" style={{ padding: "25vh 24px 0" }}>
@@ -127,7 +154,20 @@ export default function GraphPage() {
             </p>
             <div className="legend">
               {["PERSON", "ORGANIZATION", "TECHNOLOGY", "CONCEPT", "LOCATION", "DOCUMENT"].map((type) => (
-                <span key={type}>
+                <button
+                  key={type}
+                  type="button"
+                  aria-pressed={!hiddenTypes.has(type)}
+                  title={`Toggle ${type.toLowerCase()}`}
+                  onClick={() =>
+                    setHiddenTypes((current) => {
+                      const next = new Set(current);
+                      if (next.has(type)) next.delete(type);
+                      else next.add(type);
+                      return next;
+                    })
+                  }
+                >
                   <i
                     style={{
                       background:
@@ -142,7 +182,7 @@ export default function GraphPage() {
                     }}
                   />
                   {type.charAt(0) + type.slice(1).toLowerCase()}
-                </span>
+                </button>
               ))}
             </div>
           </>

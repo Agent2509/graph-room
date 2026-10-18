@@ -4,6 +4,8 @@ are idempotent and a document delete is exactly revertible.
 
 import json
 import sqlite3
+from collections import defaultdict
+from itertools import combinations
 
 from graph_rag.models import ExtractedEdge, ExtractedEntity
 from graph_rag.pipeline import vectors
@@ -51,6 +53,57 @@ def write_extraction(
                 (edge.src, edge.dst, edge.rel, chunk_id, edge.description[:400], edge.weight),
             )
         _recompute_edge(conn, edge.src, edge.dst, edge.rel)
+
+
+def write_cooccurrence(
+    conn: sqlite3.Connection, document_id: str, max_entities: int = 25
+) -> None:
+    """Remember which entities share a chunk. Bounded: at most 25 per chunk."""
+    rows = conn.execute(
+        "SELECT c.id AS chunk_id, m.name AS name FROM chunks c "
+        "JOIN entity_mentions m ON m.chunk_id = c.id "
+        "WHERE c.document_id=? ORDER BY c.id, m.name",
+        (document_id,),
+    ).fetchall()
+    by_chunk: dict[str, list[str]] = defaultdict(list)
+    for row in rows:
+        by_chunk[row["chunk_id"]].append(row["name"])
+    for chunk_id, names in by_chunk.items():
+        unique = sorted(set(names))[:max_entities]
+        for left, right in combinations(unique, 2):
+            conn.execute(
+                "INSERT OR IGNORE INTO chunk_pairs(chunk_id, src, dst) VALUES (?, ?, ?)",
+                (chunk_id, left, right),
+            )
+
+
+def cooccurrence_pairs(
+    conn: sqlite3.Connection, per_node: int = 3
+) -> list[tuple[str, str, float]]:
+    """Strongest co-occurrence partners per entity, capped so the map stays readable."""
+    rows = conn.execute(
+        "SELECT src, dst, COUNT(*) AS weight FROM chunk_pairs GROUP BY src, dst"
+    ).fetchall()
+    weights = {(row["src"], row["dst"]): float(row["weight"]) for row in rows}
+
+    by_node: dict[str, list[tuple[float, str]]] = defaultdict(list)
+    for (left, right), weight in weights.items():
+        by_node[left].append((weight, right))
+        by_node[right].append((weight, left))
+
+    kept: set[tuple[str, str]] = set()
+    degree: dict[str, int] = defaultdict(int)
+    for node in sorted(by_node):
+        for _, other in sorted(by_node[node], key=lambda pair: (-pair[0], pair[1])):
+            if degree[node] >= per_node:
+                break
+            if degree[other] >= per_node:
+                continue
+            pair = (node, other) if node < other else (other, node)
+            kept.add(pair)
+            degree[node] += 1
+            degree[other] += 1
+    return [(left, right, weights[(left, right)]) for left, right in sorted(kept)]
 
 
 def delete_document(db, document_id: str) -> dict[str, int]:
@@ -244,6 +297,19 @@ def graph_payload(
             {
                 "src": node_id, "dst": row["entity"], "rel": "MENTIONED_IN",
                 "description": "", "weight": row["weight"], "kind": "mention",
+            }
+        )
+
+    relation_pairs = {(edge["src"], edge["dst"]) for edge in edges}
+    for left, right, weight in cooccurrence_pairs(conn):
+        if left not in keep or right not in keep:
+            continue
+        if (left, right) in relation_pairs or (right, left) in relation_pairs:
+            continue
+        edges.append(
+            {
+                "src": left, "dst": right, "rel": "CO_OCCURS",
+                "description": "", "weight": weight, "kind": "cooccur",
             }
         )
 

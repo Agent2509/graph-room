@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from graph_rag.models import ExtractedEdge, ExtractedEntity, TextChunk
+from graph_rag.pipeline.stoplist import COMMON_WORDS, UNITS
 
 MIN_MARGIN = 0.03
 MAX_ENTITY_SENTENCES = 2
@@ -298,8 +299,28 @@ def find_spans(sentence: str) -> list[Span]:
             span.type = "ORGANIZATION"
         elif _follows_locative_cue(sentence, span.start):
             span.type = "LOCATION"
+        if _is_common_word(span, lowered):
+            continue
         typed.append(span)
     return typed
+
+
+def _is_common_word(span: Span, lowered: list[str]) -> bool:
+    """A lone English word is noise; a technical-looking token is not.
+
+    Sentence-initial capitalization is grammar, not naming: a single CONCEPT that
+    starts a sentence is dropped unless it looks technical.
+    """
+    if span.type != "CONCEPT" or len(lowered) != 1:
+        return False
+    token = lowered[0]
+    if token in UNITS:
+        return True
+    if any(char.isdigit() for char in token) or "-" in token or "_" in token:
+        return False
+    if span.name.isupper() and len(span.name) >= 2:
+        return False
+    return token in COMMON_WORDS or span.start == 0
 
 
 def _looks_like_organization(token: str) -> bool:

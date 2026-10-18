@@ -119,3 +119,34 @@ def test_markdown_headings_and_tables_are_not_entities():
     assert "Architecture" not in names
     assert "Team" not in names
     assert "Model" not in names
+
+
+def test_common_words_are_dropped_but_technical_tokens_survive(semantic_embed):
+    text = "Total phase is Free. GPU tier uses QLoRA."
+    entities, _ = fast_extract.extract([_chunk(text)], semantic_embed)
+    names = {entity.name for entity in entities}
+    assert "Total" not in names
+    assert "Free" not in names
+    assert "GPU" in names
+    assert "QLoRA" in names
+
+
+def test_cooccurrence_pairs_are_kind_tagged_and_bounded(db, semantic_embed):
+    from graph_rag.pipeline.graph import graph_payload
+    from graph_rag.pipeline.indexer import add_document, index_document
+
+    text = (
+        "Alice Zhao founded NexusLabs in Boston. NexusLabs built CortexGraph in Zurich. "
+        "DeepBio develops CureX. ApexCloud hosts NexusLabs workloads."
+    )
+    document_id, _ = add_document(db, "a.txt", text, 400, 50)
+    index_document(db, None, semantic_embed, "none", document_id, mode="fast")
+
+    edges = graph_payload(db.conn())["edges"]
+    cooccur = [edge for edge in edges if edge["kind"] == "cooccur"]
+    assert cooccur
+    per_node: dict[str, int] = {}
+    for edge in cooccur:
+        per_node[edge["src"]] = per_node.get(edge["src"], 0) + 1
+        per_node[edge["dst"]] = per_node.get(edge["dst"], 0) + 1
+    assert max(per_node.values()) <= 3

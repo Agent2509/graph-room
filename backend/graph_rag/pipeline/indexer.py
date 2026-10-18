@@ -102,6 +102,7 @@ def index_document(
     resolved_edges = resolver.resolve_edges(raw_edges, resolved)
     with db.tx() as tx:
         graph.write_extraction(tx, resolved, resolved_edges)
+        graph.write_cooccurrence(tx, document_id)
 
     total_vectors = len(chunks) + len(resolved)
     done = 0

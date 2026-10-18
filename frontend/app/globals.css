@@ -587,6 +587,22 @@ select {
   margin-top: 18px;
 }
 
+.legend button {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.legend button[aria-pressed="false"] {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
 .legend i {
   display: inline-block;
   width: 7px;
