@@ -37,12 +37,12 @@ def detect(conn: sqlite3.Connection) -> list[list[str]]:
     if graph.number_of_nodes() == 0:
         return []
     if graph.number_of_edges() == 0:
-        return [[name] for name in sorted(graph.nodes)]
+        return []  # isolated entities are not a community, and 100 of them are noise
     try:
         parts = nx.community.louvain_communities(graph, seed=42)
     except Exception:  # noqa: BLE001 - fall back to components on any solver issue
         parts = nx.connected_components(graph)
-    return [sorted(part) for part in parts]
+    return [sorted(part) for part in parts if len(part) >= 2]
 
 
 def rebuild(db: Database, llm=None, embed=None, max_llm: int = 12) -> int:

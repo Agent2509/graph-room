@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getGraph, getStats } from "@/lib/api";
 import type { GraphLink, GraphNode, Stats } from "@/lib/types";
@@ -22,8 +22,9 @@ export default function GraphPage() {
 
   const load = useCallback(async () => {
     try {
+      // Always load every node; the "hide isolated" toggle filters here so a
+      // graph with zero edges can never render as empty by accident.
       const params = new URLSearchParams({ limit: "600" });
-      if (minDegree) params.set("min_degree", "1");
       const [graph, overview] = await Promise.all([getGraph(params), getStats()]);
       setNodes(graph.nodes);
       setLinks(graph.edges);
@@ -40,6 +41,15 @@ export default function GraphPage() {
     return () => window.removeEventListener(CHANGED, handler);
   }, [load]);
 
+  const visibleNodes = useMemo(
+    () => (minDegree && links.length > 0 ? nodes.filter((node) => node.degree > 0) : nodes),
+    [minDegree, links.length, nodes],
+  );
+  const visibleLinks = useMemo(() => {
+    const keep = new Set(visibleNodes.map((node) => node.id));
+    return links.filter((link) => keep.has(link.src) && keep.has(link.dst));
+  }, [links, visibleNodes]);
+
   return (
     <div className="graph-wrap">
       <section className="canvas" aria-label="Knowledge graph">
@@ -52,15 +62,15 @@ export default function GraphPage() {
             />
             hide isolated entities
           </label>
-          <span>{nodes.length} shown</span>
+          <span>{visibleNodes.length} shown</span>
         </div>
-        {nodes.length === 0 ? (
+        {visibleNodes.length === 0 ? (
           <div className="empty" style={{ padding: "25vh 24px 0" }}>
             <h1>The graph is empty.</h1>
             <p>Add a document in the workspace. Entities and relations appear here once indexing finishes.</p>
           </div>
         ) : (
-          <GraphView nodes={nodes} links={links} onSelect={setSelected} />
+          <GraphView nodes={visibleNodes} links={visibleLinks} onSelect={setSelected} />
         )}
       </section>
 

@@ -58,6 +58,9 @@ PASSIVE = re.compile(r"\b(was|were|is|are|been|being)\b[^,;]{0,40}\bby\b", re.IG
 AGENTLESS_PASSIVE = re.compile(r"\b\w+ed by\b", re.IGNORECASE)
 ABBREVIATIONS = {"dr", "prof", "mr", "mrs", "ms", "inc", "corp", "ltd", "co", "vs", "e.g", "i.e", "u.s", "st"}
 
+CODE_BLOCK = re.compile(r"```[\s\S]*?```")
+INLINE_CODE = re.compile(r"`[^`\n]{1,80}`")
+IDENTIFIER = re.compile(r"^[A-Z][A-Z0-9_]*$")
 CAP_RE = re.compile(
     r"\b[A-Z][\w&.'-]*(?:\s+(?:of|the|de|van|von)\s+[A-Z][\w&.'-]*"
     r"|\s+[A-Z][\w&.'-]*){0,5}"
@@ -124,7 +127,7 @@ def extract(
     candidates: list[tuple[str, str, str, str, str, str]] = []  # chunk, sentence, src, mid, dst, types
 
     for chunk in chunks:
-        for _, _, sentence in sentences(chunk.text):
+        for _, _, sentence in sentences(strip_code(chunk.text)):
             spans = find_spans(sentence)
             if not spans:
                 continue
@@ -211,6 +214,11 @@ def classify(
     return out, [float(value) for value in best_score]
 
 
+def strip_code(text: str) -> str:
+    """Code blocks and inline code are not prose; identifiers make junk entities."""
+    return INLINE_CODE.sub(" ", CODE_BLOCK.sub(" ", text))
+
+
 def sentences(text: str) -> list[tuple[int, int, str]]:
     """Sentence boundaries with offsets, tolerating Dr./Inc./U.S. abbreviations."""
     bounds: list[tuple[int, int]] = []
@@ -276,6 +284,8 @@ def find_spans(sentence: str) -> list[Span]:
         if all(token in MONTHS or token.isdigit() for token in lowered):
             continue
         if lowered[0] in ROLE_WORDS:
+            continue
+        if IDENTIFIER.match(span.name) and ("_" in span.name or any(c.isdigit() for c in span.name)):
             continue
         if lowered[0] in HONORIFICS:
             span.type = "PERSON"

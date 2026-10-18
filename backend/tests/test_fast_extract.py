@@ -86,3 +86,26 @@ def test_indexing_in_fast_mode_needs_no_llm(db, semantic_embed):
     assert result == "done"
     assert db.conn().execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"] > 0
     assert db.conn().execute("SELECT COUNT(*) AS c FROM edges").fetchone()["c"] > 0
+
+
+def test_code_identifiers_are_not_entities():
+    text = "Set BASE_MODEL and BATCH_SIZE in `config.py`.\n\n```python\nMAX_TOKENS = 4096\n```\n"
+    from graph_rag.pipeline.fast_extract import strip_code
+
+    cleaned = strip_code(text)
+    assert "BASE_MODEL" in cleaned  # prose mention survives
+    spans = {span.name for span in find_spans(cleaned)}
+    assert "BASE_MODEL" not in spans and "BATCH_SIZE" not in spans
+    assert "MAX_TOKENS" not in spans
+
+
+def test_isolated_entities_are_not_communities(db, semantic_embed):
+    from graph_rag.models import ExtractedEntity
+    from graph_rag.pipeline import communities
+    from graph_rag.pipeline.graph import write_extraction
+
+    with db.tx() as tx:
+        write_extraction(
+            tx, {"a": ExtractedEntity(name="A", chunk_ids=[])}, []
+        )
+    assert communities.detect(db.conn()) == []
