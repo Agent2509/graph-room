@@ -100,6 +100,9 @@ export default function Ingest() {
     try {
       const result = await removeDocument(id);
       if (result.job_id) track(result.job_id);
+      // Counts live in the header and the graph page: refresh them even when the
+      // delete did not queue a job (fast extraction mode).
+      window.dispatchEvent(new Event(CHANGED));
       refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Delete failed");

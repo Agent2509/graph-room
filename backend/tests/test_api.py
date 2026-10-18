@@ -148,3 +148,19 @@ def test_delete_document_while_a_job_is_running(client):
     assert response.json()["chunks_removed"] == 1
     remaining = [row["filename"] for row in client.get("/api/documents").json()]
     assert remaining == ["b"]
+
+
+def test_deleting_the_last_document_empties_every_count(client):
+    created = client.post(
+        "/api/documents", data={"text": "Alice Zhao founded NexusLabs.", "filename": "only"}
+    ).json()
+    assert _wait(client, created["job_id"])["status"] == "done"
+    before = client.get("/api/stats").json()
+    assert before["documents"] == 1 and before["entities"] > 0
+
+    assert client.delete(f"/api/documents/{created['document_id']}").status_code == 200
+
+    after = client.get("/api/stats").json()
+    for key in ("documents", "chunks", "entities", "edges", "communities"):
+        assert after[key] == 0, (key, after[key])
+    assert client.get("/api/graph").json() == {"nodes": [], "edges": []}
