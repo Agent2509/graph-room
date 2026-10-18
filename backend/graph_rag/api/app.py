@@ -11,6 +11,7 @@ from graph_rag import config as config_module
 from graph_rag.api.routes import documents, graph, health, jobs, query, stats
 from graph_rag.config import Settings
 from graph_rag.db import Database
+from graph_rag.demo import seed_demo
 from graph_rag.embeddings import Embedder
 from graph_rag.jobs import JobRunner
 
@@ -35,6 +36,11 @@ def create_app(config: Settings | None = None, llm=None, embed=None) -> FastAPI:
     app.state.llm_cache = {}
     app.state.embed = embed or Embedder()
     app.state.runner = JobRunner(app.state.db)
+
+    if config.seed_demo:
+        seeded = seed_demo(app.state.db, app.state.embed)
+        if seeded:
+            logger.info("Seeded the demo index with %d documents (no API calls)", seeded)
 
     app.add_middleware(
         CORSMiddleware,

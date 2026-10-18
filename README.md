@@ -49,6 +49,10 @@ cd frontend && npm install
 NEXT_PUBLIC_API_BASE=http://localhost:8000 npm run dev
 ```
 
+On first run the app seeds a browsable demo index from the bundled corpus by
+replaying recorded LLM responses — zero API calls, so the graph is there before
+anyone types a key.
+
 The first thing the workspace asks for is **your** Groq key. It lives in browser storage,
 is sent as `X-LLM-Key` with each request, and is cached in server memory for that process
 only — never written to disk, never shared between visitors. A server-side
@@ -87,6 +91,11 @@ Set `API_TOKEN` to also require `Authorization: Bearer <token>`.
 Document ids are content hashes, so re-uploading the same file is a no-op and chunk ids
 (`doc#0001`) cannot collide across documents.
 
+**Models.** Graph work (extraction, community summaries) uses `EXTRACTION_MODEL`
+(default `openai/gpt-oss-20b`), because it reads every chunk. Answers use
+`GROQ_MODEL` (default `openai/gpt-oss-120b`). Groq limits apply per model, so the
+good model keeps its budget for questions.
+
 **Extract.** Chunks go to the LLM in batches of 3. Every item is validated on its own
 (`pydantic`): a relationship with `weight: "1.0 (high)"` is coerced, not a reason to lose
 the batch. Responses are cached by `sha256(model + chunk texts)`, so a failed job resumes
@@ -99,7 +108,9 @@ from what is left, drop what has no mentions.
 
 **Retrieve.** Local search seeds entities from vector KNN plus exact name matches, walks
 a bounded neighbourhood with a recursive CTE over an `adjacency` view, and fuses
-mention/BM25/vector chunk rankings with reciprocal rank fusion. Global search ranks
+mention/BM25/vector chunk rankings with reciprocal rank fusion. If nothing is
+retrieved, the LLM is skipped and the API returns "No evidence in the corpus" —
+no tokens, no invented answer. Global search ranks
 community summaries and synthesizes across them. `auto` routes with keyword hints, then
 one LLM classification as a fallback.
 

@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
-from graph_rag.api.deps import check_upload_size, get_llm, require_token
+from graph_rag.api.deps import check_upload_size, get_extraction_llm, require_token
 from graph_rag.jobs import runner as jobs
 from graph_rag.pipeline import graph as graph_pipeline
 from graph_rag.pipeline import indexer
@@ -28,7 +28,7 @@ def _index_work(request: Request, document_id: str, llm):
             state.db,
             llm,
             state.embed,
-            config.groq_model,
+            config.extraction_model,
             document_id,
             batch_size=config.extraction_batch_size,
             max_llm_summaries=config.max_llm_summaries,
@@ -54,7 +54,7 @@ async def create_document(
     file: UploadFile | None = File(default=None),
     text: str | None = Form(default=None),
     filename: str | None = Form(default=None),
-    llm=Depends(get_llm),
+    llm=Depends(get_extraction_llm),
 ) -> dict:
     state = request.app.state
     content: str
@@ -115,7 +115,7 @@ def _summarize_work(request: Request, llm):
 
 
 @router.delete("/{document_id}")
-async def delete_document(request: Request, document_id: str, llm=Depends(get_llm)) -> dict:
+async def delete_document(request: Request, document_id: str, llm=Depends(get_extraction_llm)) -> dict:
     state = request.app.state
     exists = state.db.conn().execute(
         "SELECT 1 FROM documents WHERE id=?", (document_id,)

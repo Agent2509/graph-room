@@ -17,6 +17,10 @@ COPY backend/pyproject.toml ./
 COPY backend/graph_rag ./graph_rag
 RUN pip install --no-cache-dir .
 
+# Demo seed needs the corpus and the recorded LLM responses.
+COPY sample_data ./sample_data
+COPY fixtures ./fixtures
+
 # Bake the embedding model so the container starts without a download.
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
 

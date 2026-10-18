@@ -80,6 +80,17 @@ def prepare(
         }
         chunks = [by_id[chunk_id] for chunk_id in chosen if chunk_id in by_id]
 
+    if not entities and not chunks:
+        return {
+            "mode": "local",
+            "system": SYSTEM,
+            "prompt": "",
+            "entities": [],
+            "edges": [],
+            "chunks": [],
+            "context": "No evidence in the corpus for that question. Try another wording or add a document.",
+        }
+
     entities_text = "\n".join(
         f"- {e['name']} ({e['type']}): {e['description']}" for e in entities
     ) or "None matched."

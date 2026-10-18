@@ -23,6 +23,7 @@ def test_health_needs_no_token_and_reports_features(client):
     body = client.get("/api/health").json()
     assert body["status"] == "ok"
     assert body["features"]["vectors"].startswith("sqlite-vec")
+    assert body["features"]["answer_model"] != body["features"]["extraction_model"]
 
 
 def test_paste_index_and_query(client):
@@ -55,7 +56,7 @@ def test_paste_index_and_query(client):
 
 def test_upload_cap_returns_413(tmp_path, embed):
     app = create_app(
-        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", max_upload_bytes=10),
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", max_upload_bytes=10, seed_demo=False),
         llm=MockLLM(),
         embed=embed,
     )
@@ -68,7 +69,7 @@ def test_upload_cap_returns_413(tmp_path, embed):
 
 def test_token_auth(tmp_path, embed):
     app = create_app(
-        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", api_token="s3cret"),
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", api_token="s3cret", seed_demo=False),
         llm=MockLLM(),
         embed=embed,
     )
@@ -103,7 +104,7 @@ def test_failed_indexing_can_be_retried(client):
 
 def test_api_requires_the_callers_own_groq_key(tmp_path, embed):
     app = create_app(
-        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s"), embed=embed
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", seed_demo=False), embed=embed
     )  # no injected llm, no server key
     with TestClient(app) as client:
         response = client.post(

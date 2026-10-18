@@ -46,6 +46,7 @@ def make_settings(tmp_path, **overrides) -> Settings:
         "static_dir": tmp_path / "static",
         "groq_api_key": None,
         "api_token": None,
+        "seed_demo": False,
     }
     values.update(overrides)
     return Settings(**values)

@@ -69,7 +69,7 @@ class GroqLLM(BaseLLM):
         messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
         response = self._call(
-            model=self.model, messages=messages, temperature=0.1, max_tokens=2048
+            model=self.model, messages=messages, temperature=0.0, max_tokens=2048
         )
         return response.choices[0].message.content or ""
 
@@ -102,7 +102,7 @@ class GroqLLM(BaseLLM):
         for attempt in range(4):
             try:
                 result = await self._async.chat.completions.create(
-                    model=self.model, messages=messages, temperature=0.2,
+                    model=self.model, messages=messages, temperature=0.0,
                     max_tokens=2048, stream=True,
                 )
                 break

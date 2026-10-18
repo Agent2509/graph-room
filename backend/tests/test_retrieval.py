@@ -55,7 +55,26 @@ def test_global_without_communities_is_explicit(db, embed):
     assert "No community reports" in context["context"]
 
 
-def test_empty_database_does_not_crash(db, embed):
+def test_empty_database_returns_no_evidence_without_calling_the_llm(db, embed):
+    from graph_rag.retrieval import service
+
+    class Explodes:
+        model = "explodes"
+
+        def generate(self, *args, **kwargs):
+            raise AssertionError("the LLM must not be called without evidence")
+
+        def generate_json(self, *args, **kwargs):
+            raise AssertionError("the LLM must not be called without evidence")
+
+        async def stream(self, *args, **kwargs):
+            raise AssertionError("the LLM must not be called without evidence")
+            yield ""  # pragma: no cover
+
     context = local.prepare(db.conn(), embed, "anything")
     assert context["entities"] == []
-    assert "None matched" in context["prompt"]
+    assert context["prompt"] == ""
+    assert "No evidence" in context["context"]
+
+    result = service.answer(db, Explodes(), embed, "anything about unicorns?", mode="local")
+    assert "No evidence" in result.answer

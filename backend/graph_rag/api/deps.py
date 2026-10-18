@@ -38,27 +38,46 @@ def env_flag(name: str) -> bool:
     return os.getenv(name, "").lower() in {"1", "true", "yes"}
 
 
-def get_llm(
-    request: Request, x_llm_key: str | None = Header(default=None, alias="X-LLM-Key")
-) -> BaseLLM:
-    """Use the caller's Groq key. The server's own key is never used for requests."""
-    injected = request.app.state.llm
-    if injected is not None:  # tests and CLI injection
-        return injected
+def _client(request: Request, key: str, model: str) -> BaseLLM:
+    cache: dict[str, BaseLLM] = request.app.state.llm_cache
+    fingerprint = hashlib.sha256(f"{model}:{key}".encode()).hexdigest()
+    client = cache.get(fingerprint)
+    if client is None:
+        client = GroqLLM(key, model)
+        if len(cache) >= MAX_CACHED_CLIENTS:
+            cache.pop(next(iter(cache)))
+        cache[fingerprint] = client
+    return client
 
+
+def _require_key(request: Request, x_llm_key: str | None) -> str:
     key = (x_llm_key or "").strip()
     if not key:
         raise HTTPException(
             status_code=400,
             detail="Missing Groq API key. Add yours in the sidebar; it stays in your browser.",
         )
+    return key
 
-    cache: dict[str, BaseLLM] = request.app.state.llm_cache
-    fingerprint = hashlib.sha256(key.encode()).hexdigest()
-    client = cache.get(fingerprint)
-    if client is None:
-        client = GroqLLM(key, request.app.state.settings.groq_model)
-        if len(cache) >= MAX_CACHED_CLIENTS:
-            cache.pop(next(iter(cache)))
-        cache[fingerprint] = client
-    return client
+
+def get_answer_llm(
+    request: Request, x_llm_key: str | None = Header(default=None, alias="X-LLM-Key")
+) -> BaseLLM:
+    """The good model, used only for answering questions."""
+    injected = request.app.state.llm
+    if injected is not None:  # tests and CLI injection
+        return injected
+    return _client(request, _require_key(request, x_llm_key), request.app.state.settings.groq_model)
+
+
+def get_extraction_llm(
+    request: Request, x_llm_key: str | None = Header(default=None, alias="X-LLM-Key")
+) -> BaseLLM:
+    """The cheap model, used for graph extraction and community summaries."""
+    injected = request.app.state.llm
+    if injected is not None:
+        return injected
+    return _client(
+        request, _require_key(request, x_llm_key),
+        request.app.state.settings.extraction_model,
+    )

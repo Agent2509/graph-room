@@ -17,7 +17,15 @@ class Settings:
     data_dir: Path = field(default_factory=lambda: _path("DATA_DIR", "data"))
     static_dir: Path = field(default_factory=lambda: _path("STATIC_DIR", "static"))
     groq_api_key: str | None = field(default_factory=lambda: os.getenv("GROQ_API_KEY") or None)
-    groq_model: str = field(default_factory=lambda: os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"))
+    groq_model: str = field(
+        default_factory=lambda: os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    )
+    extraction_model: str = field(
+        default_factory=lambda: os.getenv("EXTRACTION_MODEL", "openai/gpt-oss-20b")
+    )
+    seed_demo: bool = field(
+        default_factory=lambda: os.getenv("SEED_DEMO", "1").lower() not in {"0", "false", "no"}
+    )
     api_token: str | None = field(default_factory=lambda: os.getenv("API_TOKEN") or None)
     max_upload_bytes: int = field(
         default_factory=lambda: int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))

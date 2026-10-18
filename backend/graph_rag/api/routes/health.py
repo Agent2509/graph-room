@@ -23,6 +23,8 @@ def health(request: Request) -> dict:
         "features": {
             "llm": "injected" if state.llm is not None else "user-supplied",
             "requires_llm_key": state.llm is None,
+            "answer_model": state.settings.groq_model,
+            "extraction_model": state.settings.extraction_model,
             "embeddings": state.embed.model_name,
             "vectors": f"sqlite-vec {vector_version}",
             "auth_required": bool(state.settings.api_token),

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from graph_rag.api.deps import get_llm, require_token
+from graph_rag.api.deps import get_answer_llm, require_token
 from graph_rag.retrieval import service
 
 router = APIRouter(prefix="/api", tags=["query"], dependencies=[Depends(require_token)])
@@ -44,7 +44,7 @@ async def _stream(state, body: QueryRequest, llm) -> AsyncIterator[str]:
 
 @router.post("/query")
 async def run_query(
-    request: Request, body: QueryRequest, stream: bool = False, llm=Depends(get_llm)
+    request: Request, body: QueryRequest, stream: bool = False, llm=Depends(get_answer_llm)
 ):
     state = request.app.state
     if stream:
