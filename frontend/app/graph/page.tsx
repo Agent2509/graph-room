@@ -20,6 +20,7 @@ export default function GraphPage() {
   const [showMentions, setShowMentions] = useState(true);
   const [showCooccur, setShowCooccur] = useState(true);
   const [colorBy, setColorBy] = useState<"type" | "community">("community");
+  const [fitSignal, setFitSignal] = useState(0);
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [error, setError] = useState("");
@@ -111,6 +112,14 @@ export default function GraphPage() {
             />
             co-occurrence
           </label>
+          <button
+            type="button"
+            className="btn btn-quiet"
+            onClick={() => setFitSignal((value) => value + 1)}
+            title="Zoom to fit the whole graph"
+          >
+            fit
+          </button>
           <label>
             color
             <select
@@ -137,6 +146,7 @@ export default function GraphPage() {
             nodes={visibleNodes}
             links={visibleLinks}
             colorBy={colorBy}
+            fitSignal={fitSignal}
             onSelect={setSelected}
           />
         )}

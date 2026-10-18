@@ -32,11 +32,13 @@ export default function GraphView({
   nodes,
   links,
   colorBy,
+  fitSignal,
   onSelect,
 }: {
   nodes: GraphNode[];
   links: GraphLink[];
   colorBy: "type" | "community";
+  fitSignal: number;
   onSelect: (node: GraphNode) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -103,9 +105,8 @@ export default function GraphView({
 
 
   useEffect(() => {
-    const timer = window.setTimeout(() => graphRef.current?.zoomToFit(450, 110), 900);
-    return () => window.clearTimeout(timer);
-  }, [data]);
+    if (fitSignal > 0) graphRef.current?.zoomToFit(400, 90);
+  }, [fitSignal]);
 
   const dim = (id: string) => {
     const set = activeRef.current;
@@ -123,7 +124,6 @@ export default function GraphView({
         cooldownTicks={160}
         warmupTicks={40}
         d3VelocityDecay={0.32}
-        onEngineStop={() => graphRef.current?.zoomToFit(500, 110)}
         onBackgroundClick={() => setFocus(null)}
         onNodeClick={(node: any) => {
           setFocus((current) => (current === node.id ? null : node.id));
