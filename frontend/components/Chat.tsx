@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { askStream } from "@/lib/api";
+import { askStream, getLLMKey } from "@/lib/api";
 import { toHtml } from "@/lib/markdown";
+import { KEY_CHANGED } from "./KeyPanel";
 import type { Citation } from "@/lib/types";
 
 type Turn = {
@@ -25,6 +26,7 @@ export default function Chat() {
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState("auto");
   const [busy, setBusy] = useState(false);
+  const [hasKey, setHasKey] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const transcript = useRef<HTMLDivElement>(null);
 
@@ -32,7 +34,15 @@ export default function Chat() {
     transcript.current?.scrollTo({ top: transcript.current.scrollHeight, behavior: "smooth" });
   }, [turns]);
 
-  useEffect(() => () => abort.current?.abort(), []);
+  useEffect(() => {
+    const syncKey = () => setHasKey(Boolean(getLLMKey()));
+    syncKey();
+    window.addEventListener(KEY_CHANGED, syncKey);
+    return () => {
+      window.removeEventListener(KEY_CHANGED, syncKey);
+      abort.current?.abort();
+    };
+  }, []);
 
   const send = async (question: string) => {
     if (!question.trim() || busy) return;
@@ -110,6 +120,11 @@ export default function Chat() {
               Answers are grounded in the knowledge graph and the source chunks behind it. Every
               claim carries the entity, relation or chunk it came from.
             </p>
+            {!hasKey && (
+              <p className="notice" style={{ marginBottom: 16 }}>
+                Add your Groq key in the sidebar to ask questions.
+              </p>
+            )}
             <div className="examples">
               {EXAMPLES.map((example) => (
                 <button key={example} className="example" onClick={() => send(example)}>
@@ -171,7 +186,11 @@ export default function Chat() {
             }
           }}
         />
-        <button className="btn btn-primary" onClick={() => send(draft)} disabled={busy || !draft.trim()}>
+        <button
+          className="btn btn-primary"
+          onClick={() => send(draft)}
+          disabled={busy || !draft.trim() || !hasKey}
+        >
           {busy ? "Thinking…" : "Ask"}
         </button>
       </div>

@@ -21,8 +21,8 @@ def health(request: Request) -> dict:
             "entities": conn.execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"],
         },
         "features": {
-            "llm": state.llm.model,
-            "live_llm": state.llm.model != "mock",
+            "llm": "injected" if state.llm is not None else "user-supplied",
+            "requires_llm_key": state.llm is None,
             "embeddings": state.embed.model_name,
             "vectors": f"sqlite-vec {vector_version}",
             "auth_required": bool(state.settings.api_token),

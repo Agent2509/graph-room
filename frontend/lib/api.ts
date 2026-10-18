@@ -2,6 +2,7 @@ import type { Citation, DocumentRow, GraphPayload, Job, Stats } from "./types";
 
 export const API = process.env.NEXT_PUBLIC_API_BASE ?? "";
 const TOKEN_KEY = "graphrag.token";
+const LLM_KEY = "graphrag.groq";
 
 export function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -12,9 +13,22 @@ export function setToken(token: string): void {
   window.localStorage.setItem(TOKEN_KEY, token.trim());
 }
 
+export function getLLMKey(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(LLM_KEY) ?? "";
+}
+
+export function setLLMKey(key: string): void {
+  window.localStorage.setItem(LLM_KEY, key.trim());
+}
+
 function headers(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
   const token = getToken();
-  return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
+  const key = getLLMKey();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (key) headers["X-LLM-Key"] = key;
+  return headers;
 }
 
 async function json<T>(response: Response): Promise<T> {
@@ -74,9 +88,11 @@ export async function* askStream(
     body: JSON.stringify({ question, mode }),
     signal,
   });
-  if (!response.ok || !response.body) {
-    throw new Error(`Query failed: ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.detail ?? `Query failed: ${response.status}`);
   }
+  if (!response.body) throw new Error("This browser cannot stream responses.");
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";

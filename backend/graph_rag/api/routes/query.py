@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from graph_rag.api.deps import require_token
+from graph_rag.api.deps import get_llm, require_token
 from graph_rag.retrieval import service
 
 router = APIRouter(prefix="/api", tags=["query"], dependencies=[Depends(require_token)])
@@ -31,10 +31,10 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-async def _stream(state, body: QueryRequest) -> AsyncIterator[str]:
+async def _stream(state, body: QueryRequest, llm) -> AsyncIterator[str]:
     try:
         async for event, data in service.stream_answer(
-            state.db, state.llm, state.embed, body.question, body.mode, body.max_hops
+            state.db, llm, state.embed, body.question, body.mode, body.max_hops
         ):
             yield _sse(event, data)
     except Exception as error:  # noqa: BLE001 - the browser must see a real message
@@ -43,13 +43,15 @@ async def _stream(state, body: QueryRequest) -> AsyncIterator[str]:
 
 
 @router.post("/query")
-async def run_query(request: Request, body: QueryRequest, stream: bool = False):
+async def run_query(
+    request: Request, body: QueryRequest, stream: bool = False, llm=Depends(get_llm)
+):
     state = request.app.state
     if stream:
         return StreamingResponse(
-            _stream(state, body), media_type="text/event-stream", headers=SSE_HEADERS
+            _stream(state, body, llm), media_type="text/event-stream", headers=SSE_HEADERS
         )
     result = await asyncio.to_thread(
-        service.answer, state.db, state.llm, state.embed, body.question, body.mode, body.max_hops
+        service.answer, state.db, llm, state.embed, body.question, body.mode, body.max_hops
     )
     return result.model_dump()

@@ -99,3 +99,16 @@ def test_failed_indexing_can_be_retried(client):
     assert retry["duplicate"] is False
     assert retry["job_id"]
     assert _wait(client, retry["job_id"])["status"] == "done"
+
+
+def test_api_requires_the_callers_own_groq_key(tmp_path, embed):
+    app = create_app(
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s"), embed=embed
+    )  # no injected llm, no server key
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/documents", data={"text": "Alice founded NexusLabs.", "filename": "n"}
+        )
+        assert response.status_code == 400
+        assert "Groq API key" in response.json()["detail"]
+        assert client.post("/api/query", json={"question": "who?"}).status_code == 400

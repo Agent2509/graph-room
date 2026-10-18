@@ -4,7 +4,6 @@ services:
     ports:
       - "8000:8000"
     environment:
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
       API_TOKEN: ${API_TOKEN:-}
     volumes:

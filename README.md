@@ -49,8 +49,11 @@ cd frontend && npm install
 NEXT_PUBLIC_API_BASE=http://localhost:8000 npm run dev
 ```
 
-Without `GROQ_API_KEY` the API runs on a deterministic mock LLM: ingestion and retrieval
-work end to end, the prose is canned. `/api/health` reports which provider is live.
+The first thing the workspace asks for is **your** Groq key. It lives in browser storage,
+is sent as `X-LLM-Key` with each request, and is cached in server memory for that process
+only — never written to disk, never shared between visitors. A server-side
+`GROQ_API_KEY` is not used by the API at all, so cloning this repo never spends someone
+else's quota.
 
 ### One container
 
@@ -66,7 +69,7 @@ Node runtime in production. `./data/app.db` is the whole state; back it up by co
 | Route | Purpose |
 |---|---|
 | `GET /api/health` | status, provider, vector backend (no token required) |
-| `POST /api/documents` | file (`multipart`) or `text`+`filename` form; returns `{document_id, chunks, job_id}` |
+| `POST /api/documents` | file (`multipart`) or `text`+`filename` form; requires `X-LLM-Key`; returns `{document_id, chunks, job_id}` |
 | `GET /api/documents` | documents with chunk counts |
 | `DELETE /api/documents/{id}` | removes chunks, vectors, mentions; recomputes entities; refreshes communities |
 | `GET /api/jobs/{id}` | `queued → running → done/failed`, with phase and progress |
@@ -75,7 +78,8 @@ Node runtime in production. `./data/app.db` is the whole state; back it up by co
 | `GET /api/graph` | nodes + edges for the canvas (`community`, `min_degree`, `limit`) |
 | `GET /api/stats` | counts, density, top entities, community reports |
 
-Set `API_TOKEN` to require `Authorization: Bearer <token>` on everything except `/api/health`.
+Every route except `/api/health` needs `X-LLM-Key: gsk_...` (the visitor's key).
+Set `API_TOKEN` to also require `Authorization: Bearer <token>`.
 
 ## How it works
 
@@ -155,6 +159,8 @@ Each is marked with a `shortcut:` comment in the code.
 - **No cross-encoder reranker.** BM25 + dense + RRF, because the v1 reranker failed
   silently and the evals show no recall gap. The eval report is the trigger to add it.
 - **No hierarchical parent-child chunking.** Not in the eval delta; one chunker.
+- **The caller's key is held in process memory** (hashed, max 8 clients). Fine for a
+  single instance; a multi-tenant deployment wants per-user keys in a secret store.
 - **Free-tier Groq limits** cap indexing speed. Batching and retries with the server's
   `retry-after` hint make it visible instead of a hang.
 

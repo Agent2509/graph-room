@@ -4,7 +4,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
-from graph_rag.api.deps import check_upload_size, require_token
+from graph_rag.api.deps import check_upload_size, get_llm, require_token
 from graph_rag.jobs import runner as jobs
 from graph_rag.pipeline import graph as graph_pipeline
 from graph_rag.pipeline import indexer
@@ -13,7 +13,7 @@ from graph_rag.pipeline.parsers import text_from_bytes
 router = APIRouter(prefix="/api/documents", tags=["documents"], dependencies=[Depends(require_token)])
 
 
-def _index_work(request: Request, document_id: str):
+def _index_work(request: Request, document_id: str, llm):
     state = request.app.state
     config = state.settings
 
@@ -26,7 +26,7 @@ def _index_work(request: Request, document_id: str):
 
         return indexer.index_document(
             state.db,
-            state.llm,
+            llm,
             state.embed,
             config.groq_model,
             document_id,
@@ -54,6 +54,7 @@ async def create_document(
     file: UploadFile | None = File(default=None),
     text: str | None = Form(default=None),
     filename: str | None = Form(default=None),
+    llm=Depends(get_llm),
 ) -> dict:
     state = request.app.state
     content: str
@@ -94,13 +95,13 @@ async def create_document(
                     "duplicate": True}
         # Content is stored but extraction never finished (failed job): retry it.
 
-    job_id = state.runner.submit("index", _index_work(request, document_id))
+    job_id = state.runner.submit("index", _index_work(request, document_id, llm))
     return {"document_id": document_id, "chunks": chunks, "job_id": job_id,
             "duplicate": False}
 
 
 @router.delete("/{document_id}")
-def delete_document(request: Request, document_id: str) -> dict:
+def delete_document(request: Request, document_id: str, llm=Depends(get_llm)) -> dict:
     state = request.app.state
     exists = state.db.conn().execute(
         "SELECT 1 FROM documents WHERE id=?", (document_id,)
@@ -116,7 +117,7 @@ def delete_document(request: Request, document_id: str) -> dict:
 
     def work(job_id: str) -> str:
         indexer.reindex_communities(
-            state.db, llm=state.llm, embed=state.embed,
+            state.db, llm=llm, embed=state.embed,
             max_llm_summaries=state.settings.max_llm_summaries,
         )
         return "done"

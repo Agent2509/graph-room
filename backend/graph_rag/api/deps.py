@@ -1,9 +1,14 @@
 """Shared API dependencies: bearer token and upload cap."""
 
+import hashlib
 import hmac
 import os
 
 from fastapi import Header, HTTPException, Request
+
+from graph_rag.llm import BaseLLM, GroqLLM
+
+MAX_CACHED_CLIENTS = 8
 
 
 def require_token(
@@ -31,3 +36,29 @@ def check_upload_size(size: int, cap: int) -> None:
 
 def env_flag(name: str) -> bool:
     return os.getenv(name, "").lower() in {"1", "true", "yes"}
+
+
+def get_llm(
+    request: Request, x_llm_key: str | None = Header(default=None, alias="X-LLM-Key")
+) -> BaseLLM:
+    """Use the caller's Groq key. The server's own key is never used for requests."""
+    injected = request.app.state.llm
+    if injected is not None:  # tests and CLI injection
+        return injected
+
+    key = (x_llm_key or "").strip()
+    if not key:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing Groq API key. Add yours in the sidebar; it stays in your browser.",
+        )
+
+    cache: dict[str, BaseLLM] = request.app.state.llm_cache
+    fingerprint = hashlib.sha256(key.encode()).hexdigest()
+    client = cache.get(fingerprint)
+    if client is None:
+        client = GroqLLM(key, request.app.state.settings.groq_model)
+        if len(cache) >= MAX_CACHED_CLIENTS:
+            cache.pop(next(iter(cache)))
+        cache[fingerprint] = client
+    return client

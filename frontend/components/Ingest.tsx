@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { addFile, addText, getJob, listDocuments, removeDocument } from "@/lib/api";
+import { addFile, addText, getJob, getLLMKey, listDocuments, removeDocument } from "@/lib/api";
 import type { DocumentRow, Job } from "@/lib/types";
 
+import { KEY_CHANGED } from "./KeyPanel";
 import { CHANGED } from "./StatusBar";
 
 export default function Ingest() {
@@ -14,6 +15,7 @@ export default function Ingest() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [hasKey, setHasKey] = useState(false);
   const timers = useRef<number[]>([]);
 
   const refresh = useCallback(async () => {
@@ -26,7 +28,13 @@ export default function Ingest() {
 
   useEffect(() => {
     refresh();
-    return () => timers.current.forEach((timer) => window.clearTimeout(timer));
+    const syncKey = () => setHasKey(Boolean(getLLMKey()));
+    syncKey();
+    window.addEventListener(KEY_CHANGED, syncKey);
+    return () => {
+      window.removeEventListener(KEY_CHANGED, syncKey);
+      timers.current.forEach((timer) => window.clearTimeout(timer));
+    };
   }, [refresh]);
 
   const track = useCallback(
@@ -103,6 +111,7 @@ export default function Ingest() {
       <section className="stack" aria-labelledby="add-title">
         <h2 id="add-title">Add a document</h2>
         <p className="hint">Text, markdown or PDF. Indexing extracts entities, relations and communities.</p>
+        {!hasKey && <p className="notice">Add your Groq key above to ingest or ask.</p>}
 
         <label className="file-drop">
           <span>Choose a file</span>
@@ -131,7 +140,7 @@ export default function Ingest() {
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button className="btn" onClick={submitText} disabled={!text.trim()}>
+        <button className="btn" onClick={submitText} disabled={!text.trim() || !hasKey}>
           Add to graph
         </button>
 

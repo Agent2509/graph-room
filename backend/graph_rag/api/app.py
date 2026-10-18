@@ -13,16 +13,8 @@ from graph_rag.config import Settings
 from graph_rag.db import Database
 from graph_rag.embeddings import Embedder
 from graph_rag.jobs import JobRunner
-from graph_rag.llm import GroqLLM, MockLLM
 
 logger = logging.getLogger("graph_rag")
-
-
-def build_llm(config: Settings):
-    if config.groq_api_key:
-        return GroqLLM(config.groq_api_key, config.groq_model)
-    logger.warning("GROQ_API_KEY is not set: using the offline mock LLM")
-    return MockLLM()
 
 
 def create_app(config: Settings | None = None, llm=None, embed=None) -> FastAPI:
@@ -38,7 +30,9 @@ def create_app(config: Settings | None = None, llm=None, embed=None) -> FastAPI:
     )
     app.state.settings = config
     app.state.db = Database(config.db_path)
-    app.state.llm = llm or build_llm(config)
+    # None means: every request must supply its own Groq key (X-LLM-Key header).
+    app.state.llm = llm
+    app.state.llm_cache = {}
     app.state.embed = embed or Embedder()
     app.state.runner = JobRunner(app.state.db)
 
