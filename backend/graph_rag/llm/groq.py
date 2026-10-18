@@ -74,17 +74,24 @@ class GroqLLM(BaseLLM):
         return response.choices[0].message.content or ""
 
     def generate_json(self, prompt: str, system: str | None = None) -> dict[str, Any]:
-        response = self._call(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": (system or "") + JSON_HINT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.0,
-            max_tokens=4096,
-            response_format={"type": "json_object"},
-        )
-        return _loads(response.choices[0].message.content or "{}")
+        try:
+            response = self._call(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": (system or "") + JSON_HINT},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.0,
+                max_tokens=4096,
+                response_format={"type": "json_object"},
+            )
+            return _loads(response.choices[0].message.content or "{}")
+        except Exception as error:  # noqa: BLE001
+            # Groq's JSON mode rejects the occasional malformed generation
+            # (400 json_validate_failed). Plain mode + tolerant parsing beats losing a batch.
+            if "json_validate_failed" not in str(error):
+                raise
+            return _loads(self.generate(prompt, (system or "") + JSON_HINT))
 
     async def stream(self, prompt: str, system: str | None = None) -> AsyncIterator[str]:
         messages = [{"role": "system", "content": system}] if system else []

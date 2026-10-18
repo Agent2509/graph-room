@@ -83,8 +83,16 @@ async def create_document(
         state.settings.chunk_overlap,
     )
     if chunks == 0:
-        return {"document_id": document_id, "chunks": 0, "job_id": None,
-                "duplicate": True}
+        already = state.db.conn().execute(
+            "SELECT 1 FROM entity_mentions "
+            "JOIN chunks ON chunks.id = entity_mentions.chunk_id "
+            "WHERE chunks.document_id = ? LIMIT 1",
+            (document_id,),
+        ).fetchone()
+        if already:
+            return {"document_id": document_id, "chunks": 0, "job_id": None,
+                    "duplicate": True}
+        # Content is stored but extraction never finished (failed job): retry it.
 
     job_id = state.runner.submit("index", _index_work(request, document_id))
     return {"document_id": document_id, "chunks": chunks, "job_id": job_id,

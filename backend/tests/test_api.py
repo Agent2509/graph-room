@@ -84,3 +84,18 @@ def test_token_auth(tmp_path, embed):
 def test_unknown_document_is_404(client):
     assert client.delete("/api/documents/nope").status_code == 404
     assert client.get("/api/jobs/nope").status_code == 404
+
+
+def test_failed_indexing_can_be_retried(client):
+    """A document whose job failed (no mentions) must be indexable again."""
+    body = {"text": "Alice founded NexusLabs.", "filename": "note"}
+    first = client.post("/api/documents", data=body).json()
+    assert _wait(client, first["job_id"])["status"] == "done"
+
+    conn = client.app.state.db.conn()  # type: ignore[attr-defined]
+    conn.executescript("DELETE FROM entity_mentions; DELETE FROM entities;")
+
+    retry = client.post("/api/documents", data=body).json()
+    assert retry["duplicate"] is False
+    assert retry["job_id"]
+    assert _wait(client, retry["job_id"])["status"] == "done"
