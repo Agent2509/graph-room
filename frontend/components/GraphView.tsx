@@ -3,29 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 
+import { COMMUNITY_COLORS, colorForType } from "@/lib/graphColors";
 import type { GraphLink, GraphNode } from "@/lib/types";
-
-const COLORS: Record<string, string> = {
-  PERSON: "#e0a458",
-  ORGANIZATION: "#8fbf9b",
-  TECHNOLOGY: "#7fa6c9",
-  PRODUCT: "#7fa6c9",
-  CONCEPT: "#b9b3a3",
-  LOCATION: "#c4693f",
-  EVENT: "#c58fb5",
-  DOCUMENT: "#5f7f8c",
-};
-
-const COMMUNITY_COLORS = [
-  "#7fa6c9", "#8fbf9b", "#e0a458", "#c58fb5", "#8aa4d6",
-  "#d69a7a", "#a3c9a8", "#c9b47f", "#9bb8c4", "#b9a3c9",
-];
 
 const colorOf = (node: GraphNode, colorBy: "type" | "community") => {
   if (colorBy === "community" && node.community != null) {
     return COMMUNITY_COLORS[node.community % COMMUNITY_COLORS.length];
   }
-  return COLORS[node.type] ?? COLORS.CONCEPT;
+  return colorForType(node.type);
 };
 
 export default function GraphView({

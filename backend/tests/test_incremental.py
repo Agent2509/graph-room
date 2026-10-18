@@ -28,9 +28,7 @@ def test_delete_removes_only_that_documents_entities(db, embed):
 
     stale = [
         row["name"]
-        for row in db.conn().execute(
-            "SELECT name FROM community_members WHERE name='NexusLabs'"
-        )
+        for row in db.conn().execute("SELECT name FROM community_members WHERE name='NexusLabs'")
     ]
     assert stale == []
     assert db.conn().execute("SELECT COUNT(*) AS c FROM chunks").fetchone()["c"] > 0

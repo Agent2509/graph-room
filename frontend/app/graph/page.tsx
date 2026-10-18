@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getGraph, getStats } from "@/lib/api";
+import { colorForType } from "@/lib/graphColors";
 import type { GraphLink, GraphNode, Stats } from "@/lib/types";
 import { CHANGED } from "@/components/StatusBar";
 
@@ -217,19 +218,7 @@ export default function GraphPage() {
                     })
                   }
                 >
-                  <i
-                    style={{
-                      background:
-                        {
-                          PERSON: "#e0a458",
-                          ORGANIZATION: "#8fbf9b",
-                          TECHNOLOGY: "#7fa6c9",
-                          CONCEPT: "#b9b3a3",
-                          LOCATION: "#c4693f",
-                          DOCUMENT: "#5f7f8c",
-                        }[type] ?? "#b9b3a3",
-                    }}
-                  />
+                  <i style={{ background: colorForType(type) }} />
                   {type.charAt(0) + type.slice(1).toLowerCase()}
                 </button>
               ))}

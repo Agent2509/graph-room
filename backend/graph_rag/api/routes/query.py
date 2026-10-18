@@ -53,7 +53,13 @@ async def run_query(
             _stream(state, body, llm), media_type="text/event-stream", headers=SSE_HEADERS
         )
     result = await asyncio.to_thread(
-        service.answer, state.db, llm, state.embed, body.question, body.mode,
-        body.max_hops, body.document_id,
+        service.answer,
+        state.db,
+        llm,
+        state.embed,
+        body.question,
+        body.mode,
+        body.max_hops,
+        body.document_id,
     )
     return result.model_dump()

@@ -37,14 +37,22 @@ def seed_demo(db: Database, embed) -> int:
     seeded = 0
     for path in sorted(SAMPLE_DIR.glob("*.txt")):
         document_id, chunks = indexer.add_document(
-            db, path.name, path.read_text(encoding="utf-8"),
-            SEED_CHUNK_SIZE, SEED_CHUNK_OVERLAP,
+            db,
+            path.name,
+            path.read_text(encoding="utf-8"),
+            SEED_CHUNK_SIZE,
+            SEED_CHUNK_OVERLAP,
         )
         if not chunks:
             continue
         indexer.index_document(
-            db, llm, embed, llm.model, document_id,
-            batch_size=SEED_BATCH_SIZE, max_llm_summaries=0,
+            db,
+            llm,
+            embed,
+            llm.model,
+            document_id,
+            batch_size=SEED_BATCH_SIZE,
+            max_llm_summaries=0,
         )
         seeded += 1
 

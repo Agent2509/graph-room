@@ -111,9 +111,7 @@ def parse(
         if raw.source.lower() == raw.target.lower():
             continue
         chunk_ids = [
-            cid
-            for cid, text in texts
-            if raw.source.lower() in text or raw.target.lower() in text
+            cid for cid, text in texts if raw.source.lower() in text or raw.target.lower() in text
         ] or all_ids
         edges.append(
             ExtractedEdge(

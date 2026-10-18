@@ -18,7 +18,8 @@ jobs:
           key: fastembed-bge-small-en-v1.5
       - run: pip install -e backend
       - run: pip install pytest pytest-asyncio httpx ruff
-      - run: ruff check backend/graph_rag backend/tests
+      - run: ruff check backend/graph_rag backend/tests backend/evals
+      - run: ruff format --check backend/graph_rag backend/tests backend/evals
       - run: pytest backend -q
       # Replays recorded LLM responses: full pipeline, zero API calls.
       - run: python backend/evals/run.py

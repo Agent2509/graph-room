@@ -56,7 +56,9 @@ def test_paste_index_and_query(client):
 
 def test_upload_cap_returns_413(tmp_path, embed):
     app = create_app(
-        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", max_upload_bytes=10, seed_demo=False),
+        Settings(
+            data_dir=tmp_path / "d", static_dir=tmp_path / "s", max_upload_bytes=10, seed_demo=False
+        ),
         llm=MockLLM(),
         embed=embed,
     )
@@ -69,16 +71,20 @@ def test_upload_cap_returns_413(tmp_path, embed):
 
 def test_token_auth(tmp_path, embed):
     app = create_app(
-        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", api_token="s3cret", seed_demo=False),
+        Settings(
+            data_dir=tmp_path / "d", static_dir=tmp_path / "s", api_token="s3cret", seed_demo=False
+        ),
         llm=MockLLM(),
         embed=embed,
     )
     with TestClient(app) as client:
         assert client.get("/api/stats").status_code == 401
-        assert client.get("/api/stats", headers={"Authorization": "Bearer wrong"}).status_code == 401
-        assert client.get(
-            "/api/stats", headers={"Authorization": "Bearer s3cret"}
-        ).status_code == 200
+        assert (
+            client.get("/api/stats", headers={"Authorization": "Bearer wrong"}).status_code == 401
+        )
+        assert (
+            client.get("/api/stats", headers={"Authorization": "Bearer s3cret"}).status_code == 200
+        )
         assert client.get("/api/health").status_code == 200
 
 
@@ -123,8 +129,10 @@ def test_fast_mode_ingests_without_a_key_but_queries_do_not(tmp_path, embed):
 def test_llm_extraction_mode_requires_a_key(tmp_path, embed):
     app = create_app(
         Settings(
-            data_dir=tmp_path / "d2", static_dir=tmp_path / "s2",
-            seed_demo=False, extraction_mode="llm",
+            data_dir=tmp_path / "d2",
+            static_dir=tmp_path / "s2",
+            seed_demo=False,
+            extraction_mode="llm",
         ),
         embed=embed,
     )
@@ -179,8 +187,11 @@ def test_query_can_be_scoped_to_one_document(client):
 
     scoped = client.post(
         "/api/query",
-        json={"question": "NexusLabs DeepBio CureX", "mode": "local",
-              "document_id": first["document_id"]},
+        json={
+            "question": "NexusLabs DeepBio CureX",
+            "mode": "local",
+            "document_id": first["document_id"],
+        },
     ).json()
     assert scoped["chunks"]
     assert all(chunk["id"].startswith(first["document_id"]) for chunk in scoped["chunks"])
@@ -204,8 +215,11 @@ def test_auto_mode_with_document_scope_stays_local_and_scoped(client):
 
     scoped = client.post(
         "/api/query",
-        json={"question": "DeepBio CureX NexusLabs", "mode": "auto",
-              "document_id": first["document_id"]},
+        json={
+            "question": "DeepBio CureX NexusLabs",
+            "mode": "auto",
+            "document_id": first["document_id"],
+        },
     ).json()
     assert scoped["mode"] == "local"
     assert scoped["chunks"]
@@ -226,9 +240,7 @@ def test_interrupted_jobs_are_failed_on_startup(tmp_path, embed):
 
     data_dir = tmp_path / "restart"
     seeded = Database(data_dir / "app.db")
-    seeded.conn().execute(
-        "INSERT INTO jobs(id, kind, status) VALUES ('j1', 'index', 'queued')"
-    )
+    seeded.conn().execute("INSERT INTO jobs(id, kind, status) VALUES ('j1', 'index', 'queued')")
     seeded.close()
 
     app = create_app(

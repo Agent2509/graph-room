@@ -14,8 +14,27 @@ from typing import Any
 from .base import BaseLLM
 
 STOPWORDS = {
-    "The", "This", "That", "In", "On", "At", "For", "With", "By", "From", "And",
-    "Or", "An", "A", "JSON", "Extract", "Return", "You", "Your", "TEXT", "END",
+    "The",
+    "This",
+    "That",
+    "In",
+    "On",
+    "At",
+    "For",
+    "With",
+    "By",
+    "From",
+    "And",
+    "Or",
+    "An",
+    "A",
+    "JSON",
+    "Extract",
+    "Return",
+    "You",
+    "Your",
+    "TEXT",
+    "END",
 }
 
 

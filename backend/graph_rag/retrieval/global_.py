@@ -20,9 +20,7 @@ USER = """Question: {question}
 Synthesize an answer grounded in these reports:"""
 
 
-def prepare(
-    conn: sqlite3.Connection, embed, question: str, top_k_communities: int = 5
-) -> dict:
+def prepare(conn: sqlite3.Connection, embed, question: str, top_k_communities: int = 5) -> dict:
     ranked = [
         ref for ref, _ in vectors.knn(conn, "community", embed.one(question), top_k_communities)
     ]

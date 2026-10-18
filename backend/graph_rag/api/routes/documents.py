@@ -10,7 +10,9 @@ from graph_rag.pipeline import graph as graph_pipeline
 from graph_rag.pipeline import indexer
 from graph_rag.pipeline.parsers import text_from_bytes
 
-router = APIRouter(prefix="/api/documents", tags=["documents"], dependencies=[Depends(require_token)])
+router = APIRouter(
+    prefix="/api/documents", tags=["documents"], dependencies=[Depends(require_token)]
+)
 
 
 def _index_work(request: Request, document_id: str, llm):
@@ -20,7 +22,11 @@ def _index_work(request: Request, document_id: str, llm):
     def work(job_id: str) -> str:
         def progress(phase: str, done: int, total: int) -> None:
             jobs.update(
-                state.db, job_id, phase=phase, done=done, total=total,
+                state.db,
+                job_id,
+                phase=phase,
+                done=done,
+                total=total,
                 message=f"{phase} {done}/{total}",
             )
 
@@ -92,22 +98,24 @@ async def create_document(
         state.settings.chunk_overlap,
     )
     if chunks == 0:
-        already = state.db.conn().execute(
-            "SELECT 1 FROM entity_mentions "
-            "JOIN chunks ON chunks.id = entity_mentions.chunk_id "
-            "WHERE chunks.document_id = ? LIMIT 1",
-            (document_id,),
-        ).fetchone()
+        already = (
+            state.db.conn()
+            .execute(
+                "SELECT 1 FROM entity_mentions "
+                "JOIN chunks ON chunks.id = entity_mentions.chunk_id "
+                "WHERE chunks.document_id = ? LIMIT 1",
+                (document_id,),
+            )
+            .fetchone()
+        )
         if already:
-            return {"document_id": document_id, "chunks": 0, "job_id": None,
-                    "duplicate": True}
+            return {"document_id": document_id, "chunks": 0, "job_id": None, "duplicate": True}
         # Content is stored but extraction never finished (failed job): retry it.
 
     job_id = state.runner.submit("index", _index_work(request, document_id, llm))
     if llm is not None:
         state.runner.submit("communities", _summarize_work(request, llm))
-    return {"document_id": document_id, "chunks": chunks, "job_id": job_id,
-            "duplicate": False}
+    return {"document_id": document_id, "chunks": chunks, "job_id": job_id, "duplicate": False}
 
 
 def _summarize_work(request: Request, llm):
@@ -115,7 +123,9 @@ def _summarize_work(request: Request, llm):
 
     def work(job_id: str) -> str:
         indexer.reindex_communities(
-            state.db, llm=llm, embed=state.embed,
+            state.db,
+            llm=llm,
+            embed=state.embed,
             max_llm_summaries=state.settings.max_llm_summaries,
         )
         return "done"
@@ -124,11 +134,13 @@ def _summarize_work(request: Request, llm):
 
 
 @router.delete("/{document_id}")
-async def delete_document(request: Request, document_id: str, llm=Depends(get_extraction_llm)) -> dict:
+async def delete_document(
+    request: Request, document_id: str, llm=Depends(get_extraction_llm)
+) -> dict:
     state = request.app.state
-    exists = state.db.conn().execute(
-        "SELECT 1 FROM documents WHERE id=?", (document_id,)
-    ).fetchone()
+    exists = (
+        state.db.conn().execute("SELECT 1 FROM documents WHERE id=?", (document_id,)).fetchone()
+    )
     if not exists:
         raise HTTPException(status_code=404, detail="Document not found")
 

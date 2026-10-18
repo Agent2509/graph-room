@@ -32,11 +32,20 @@ def get_stats(request: Request) -> dict:
         )
     ]
     communities = [
-        {"id": row["id"], "title": row["title"], "summary": row["summary"],
-         "findings": json.loads(row["findings"]), "rating": row["rating"]}
+        {
+            "id": row["id"],
+            "title": row["title"],
+            "summary": row["summary"],
+            "findings": json.loads(row["findings"]),
+            "rating": row["rating"],
+        }
         for row in conn.execute("SELECT * FROM communities ORDER BY id")
     ]
     nodes, edges = counts["entities"], counts["edges"]
     density = round(edges / (nodes * (nodes - 1)), 4) if nodes > 1 else 0.0
-    return {**counts, "density": density, "top_entities": top_entities,
-            "community_reports": communities}
+    return {
+        **counts,
+        "density": density,
+        "top_entities": top_entities,
+        "community_reports": communities,
+    }

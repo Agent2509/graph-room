@@ -27,9 +27,7 @@ def add_document(
     digest = hashlib.sha256(text.encode()).hexdigest()
     document_id = digest[:16]
     conn = db.conn()
-    existing = conn.execute(
-        "SELECT id FROM documents WHERE content_sha=?", (digest,)
-    ).fetchone()
+    existing = conn.execute("SELECT id FROM documents WHERE content_sha=?", (digest,)).fetchone()
     if existing:
         return existing["id"], 0
 
@@ -42,8 +40,7 @@ def add_document(
             (document_id, filename, digest, len(text)),
         )
         tx.executemany(
-            "INSERT INTO chunks(id, document_id, idx, text, token_count) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO chunks(id, document_id, idx, text, token_count) VALUES (?, ?, ?, ?, ?)",
             [(c.id, c.document_id, c.idx, c.text, c.token_count) for c in chunks],
         )
     return document_id, len(chunks)
@@ -86,13 +83,15 @@ def index_document(
     report("extracting", 0, max(1, len(chunks) // batch_size))
     if mode == "fast":
         # Deterministic, no LLM, no cache: the work is milliseconds.
-        raw_entities, raw_edges = fast_extract.extract(
-            chunks, embed, threshold=relation_threshold
-        )
+        raw_entities, raw_edges = fast_extract.extract(chunks, embed, threshold=relation_threshold)
         report("extracting", 1, 1)
     else:
         raw_entities, raw_edges = extractor.extract(
-            db, llm, model, chunks, batch_size,
+            db,
+            llm,
+            model,
+            chunks,
+            batch_size,
             progress=lambda done, total: report("extracting", done, total),
         )
     if not raw_entities:
@@ -121,7 +120,9 @@ def index_document(
         rows = [
             row
             for row in (
-                conn.execute("SELECT name, description FROM entities WHERE name=?", (name,)).fetchone()
+                conn.execute(
+                    "SELECT name, description FROM entities WHERE name=?", (name,)
+                ).fetchone()
                 for name in window
             )
             if row

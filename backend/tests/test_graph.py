@@ -16,7 +16,9 @@ def _seed(db, filename, text):
 def _write(conn, chunk_id, entities, edges):
     resolved = {
         entity.name.lower(): ExtractedEntity(
-            name=entity.name, type=entity.type, description=entity.description,
+            name=entity.name,
+            type=entity.type,
+            description=entity.description,
             chunk_ids=[chunk_id],
         )
         for entity in entities
@@ -26,8 +28,12 @@ def _write(conn, chunk_id, entities, edges):
         resolved,
         [
             ExtractedEdge(
-                src=edge.src, dst=edge.dst, rel=edge.rel,
-                description=edge.description, weight=edge.weight, chunk_ids=[chunk_id],
+                src=edge.src,
+                dst=edge.dst,
+                rel=edge.rel,
+                description=edge.description,
+                weight=edge.weight,
+                chunk_ids=[chunk_id],
             )
             for edge in edges
         ],
@@ -50,15 +56,21 @@ def test_delete_recomputes_entity_and_drops_orphans(db):
     doc_b, chunk_b = _seed(db, "b.txt", "Alice advises DeepBio in Zurich.")
 
     _write(
-        db.conn(), chunk_a,
-        [ExtractedEntity(name="Alice", description="Founder of NexusLabs."),
-         ExtractedEntity(name="NexusLabs", description="A lab.")],
+        db.conn(),
+        chunk_a,
+        [
+            ExtractedEntity(name="Alice", description="Founder of NexusLabs."),
+            ExtractedEntity(name="NexusLabs", description="A lab."),
+        ],
         [ExtractedEdge(src="Alice", dst="NexusLabs", rel="FOUNDED", description="Founded it.")],
     )
     _write(
-        db.conn(), chunk_b,
-        [ExtractedEntity(name="Alice", description="Advisor to DeepBio."),
-         ExtractedEntity(name="DeepBio", description="A biotech.")],
+        db.conn(),
+        chunk_b,
+        [
+            ExtractedEntity(name="Alice", description="Advisor to DeepBio."),
+            ExtractedEntity(name="DeepBio", description="A biotech."),
+        ],
         [ExtractedEdge(src="Alice", dst="DeepBio", rel="ADVISES", description="Advises it.")],
     )
 

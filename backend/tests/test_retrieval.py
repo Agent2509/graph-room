@@ -26,7 +26,9 @@ def test_rrf_prefers_items_ranked_by_both_lists():
 
 def test_bm25_finds_keyword_and_survives_punctuation(db, embed):
     _ingest(db, embed, "CureX showed response rates in the oncology trial.")
-    assert bm25.search(db.conn(), "curex") == [db.conn().execute("SELECT id FROM chunks").fetchone()["id"]]
+    assert bm25.search(db.conn(), "curex") == [
+        db.conn().execute("SELECT id FROM chunks").fetchone()["id"]
+    ]
     assert bm25.search(db.conn(), "!!! ???") == []
 
 
@@ -35,10 +37,20 @@ def test_local_context_contains_seeded_entity(db, embed):
     conn = db.conn()
     write_extraction(
         conn,
-        {"alice zhao": ExtractedEntity(name="Alice Zhao", type="PERSON", description="Founder.",
-                                       chunk_ids=[chunk["id"]])},
-        [ExtractedEdge(src="Alice Zhao", dst="NexusLabs", rel="FOUNDED",
-                       description="Founded NexusLabs.", chunk_ids=[chunk["id"]])],
+        {
+            "alice zhao": ExtractedEntity(
+                name="Alice Zhao", type="PERSON", description="Founder.", chunk_ids=[chunk["id"]]
+            )
+        },
+        [
+            ExtractedEdge(
+                src="Alice Zhao",
+                dst="NexusLabs",
+                rel="FOUNDED",
+                description="Founded NexusLabs.",
+                chunk_ids=[chunk["id"]],
+            )
+        ],
     )
     conn.execute("INSERT OR IGNORE INTO entities(name, type) VALUES ('NexusLabs', 'ORGANIZATION')")
     vectors.upsert(conn, "entity", "Alice Zhao", embed.one("Alice Zhao: Founder."))
@@ -84,9 +96,7 @@ def test_document_scope_limits_chunks_to_that_document(db, embed):
     document_a, _ = _ingest(db, embed, "Alice founded NexusLabs in Boston.", "a.txt")
     _ingest(db, embed, "CureX treats tumors in Zurich.", "b.txt")
 
-    scoped = local.prepare(
-        db.conn(), embed, "Alice NexusLabs CureX Zurich", document_id=document_a
-    )
+    scoped = local.prepare(db.conn(), embed, "Alice NexusLabs CureX Zurich", document_id=document_a)
     assert scoped["chunks"]
     assert all(chunk["id"].startswith(document_a) for chunk in scoped["chunks"])
 

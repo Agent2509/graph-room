@@ -59,9 +59,7 @@ def prepare(
     if document_id:
         allowed = {
             row["id"]
-            for row in conn.execute(
-                "SELECT id FROM chunks WHERE document_id=?", (document_id,)
-            )
+            for row in conn.execute("SELECT id FROM chunks WHERE document_id=?", (document_id,))
         }
         if not allowed:
             return _no_evidence()
@@ -89,10 +87,7 @@ def prepare(
         ]
 
     dense_ids = [
-        ref
-        for ref, _ in vectors.knn(
-            conn, "chunk", question_vector, max(top_k_chunks * 6, 60)
-        )
+        ref for ref, _ in vectors.knn(conn, "chunk", question_vector, max(top_k_chunks * 6, 60))
     ]
     bm25_ids = bm25.search(conn, question, max(top_k_chunks * 6, 60))
     if allowed is not None:
@@ -116,15 +111,20 @@ def prepare(
     if not entities and not chunks:
         return _no_evidence()
 
-    entities_text = "\n".join(
-        f"- {e['name']} ({e['type']}): {e['description']}" for e in entities
-    ) or "None matched."
-    relations_text = "\n".join(
-        f"- ({e['src']}) --[{e['rel']}]--> ({e['dst']}): {e['description']}" for e in edges
-    ) or "None."
-    chunks_text = "\n\n".join(
-        f"[Chunk {c['id']}]\n{c['text']}" for c in chunks
-    ) or "No source chunks available."
+    entities_text = (
+        "\n".join(f"- {e['name']} ({e['type']}): {e['description']}" for e in entities)
+        or "None matched."
+    )
+    relations_text = (
+        "\n".join(
+            f"- ({e['src']}) --[{e['rel']}]--> ({e['dst']}): {e['description']}" for e in edges
+        )
+        or "None."
+    )
+    chunks_text = (
+        "\n\n".join(f"[Chunk {c['id']}]\n{c['text']}" for c in chunks)
+        or "No source chunks available."
+    )
 
     return {
         "mode": "local",

@@ -1,6 +1,6 @@
 """Compare rule-based extraction with the recorded LLM run. No API calls.
 
-    python backend/evals/compare_extractors.py
+python backend/evals/compare_extractors.py
 """
 
 import sys
@@ -27,13 +27,22 @@ def build(mode: str, embed, llm=None) -> dict[str, set]:
                 db, path.name, path.read_text(encoding="utf-8"), 800, 120
             )
             indexer.index_document(
-                db, llm, embed, getattr(llm, "model", "fast"), document_id,
-                batch_size=3, max_llm_summaries=0, mode=mode,
+                db,
+                llm,
+                embed,
+                getattr(llm, "model", "fast"),
+                document_id,
+                batch_size=3,
+                max_llm_summaries=0,
+                mode=mode,
             )
         elapsed = time.perf_counter() - started
         conn = db.conn()
         entities = {row["name"].lower() for row in conn.execute("SELECT name FROM entities")}
-        pairs = {(row["src"].lower(), row["dst"].lower()) for row in conn.execute("SELECT src, dst FROM edges")}
+        pairs = {
+            (row["src"].lower(), row["dst"].lower())
+            for row in conn.execute("SELECT src, dst FROM edges")
+        }
         triples = {
             (row["src"].lower(), row["rel"], row["dst"].lower())
             for row in conn.execute("SELECT src, dst, rel FROM edges")

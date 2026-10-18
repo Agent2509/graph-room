@@ -18,7 +18,9 @@ def test_recording_covers_current_prompts(db):
     data = json.loads((ROOT / "fixtures" / "llm_responses.json").read_text(encoding="utf-8"))
     checked = 0
     for path in sorted((ROOT / "sample_data").glob("*.txt")):
-        document_id, _ = indexer.add_document(db, path.name, path.read_text(encoding="utf-8"), 800, 120)
+        document_id, _ = indexer.add_document(
+            db, path.name, path.read_text(encoding="utf-8"), 800, 120
+        )
         chunks = list(
             db.conn().execute(
                 "SELECT id, text FROM chunks WHERE document_id=? ORDER BY idx", (document_id,)

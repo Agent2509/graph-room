@@ -57,8 +57,9 @@ def test_failed_extraction_is_not_cached_and_retry_succeeds(db, embed):
     from graph_rag.pipeline.indexer import add_document
 
     document_id, _ = add_document(db, "a.txt", "Alice founded NexusLabs.", 500, 50)
-    chunk = TextChunk(id="x#0000", document_id=document_id, idx=0,
-                      text="Alice founded NexusLabs.", token_count=3)
+    chunk = TextChunk(
+        id="x#0000", document_id=document_id, idx=0, text="Alice founded NexusLabs.", token_count=3
+    )
 
     class Flaky(MockLLM):
         calls = 0
@@ -100,8 +101,9 @@ def test_embedding_never_runs_inside_a_write_transaction(db):
             return self([text])[0]
 
     document_id, _ = add_document(db, "a.txt", "Alice founded NexusLabs.", 500, 50)
-    index_document(db, MockLLM(), LockProbe(), "mock", document_id, batch_size=1,
-                   max_llm_summaries=0)
+    index_document(
+        db, MockLLM(), LockProbe(), "mock", document_id, batch_size=1, max_llm_summaries=0
+    )
     assert db.conn().execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"] > 0
 
 

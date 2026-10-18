@@ -38,13 +38,19 @@ def main() -> int:
         db = Database(Path(tmp) / "record.db")
         for path in sorted((ROOT / "sample_data").glob("*.txt")):
             document_id, _ = indexer.add_document(
-                db, path.name, path.read_text(encoding="utf-8"),
-                settings.chunk_size, settings.chunk_overlap,
+                db,
+                path.name,
+                path.read_text(encoding="utf-8"),
+                settings.chunk_size,
+                settings.chunk_overlap,
             )
             chunks = [
                 TextChunk(
-                    id=row["id"], document_id=row["document_id"], idx=row["idx"],
-                    text=row["text"], token_count=row["token_count"],
+                    id=row["id"],
+                    document_id=row["document_id"],
+                    idx=row["idx"],
+                    text=row["text"],
+                    token_count=row["token_count"],
                 )
                 for row in db.conn().execute(
                     "SELECT id, document_id, idx, text, token_count FROM chunks "

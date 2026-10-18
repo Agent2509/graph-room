@@ -6,9 +6,19 @@ Return JSON: {"mode": "local" or "global"}.
 - global: broad themes, summaries, comparisons across the whole corpus."""
 
 GLOBAL_HINTS = (
-    "summary", "summarize", "overview", "main themes", "key themes", "themes",
-    "key findings", "big picture",
-    "trends", "executive summary", "all topics", "high level", "high-level",
+    "summary",
+    "summarize",
+    "overview",
+    "main themes",
+    "key themes",
+    "themes",
+    "key findings",
+    "big picture",
+    "trends",
+    "executive summary",
+    "all topics",
+    "high level",
+    "high-level",
 )
 
 

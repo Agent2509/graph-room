@@ -18,9 +18,7 @@ def write_extraction(
     edges: list[ExtractedEdge],
 ) -> None:
     for entity in entities.values():
-        row = conn.execute(
-            "SELECT type FROM entities WHERE name=?", (entity.name,)
-        ).fetchone()
+        row = conn.execute("SELECT type FROM entities WHERE name=?", (entity.name,)).fetchone()
         if row is None:
             conn.execute(
                 "INSERT INTO entities(name, type, description) VALUES (?, ?, '')",
@@ -55,9 +53,7 @@ def write_extraction(
         _recompute_edge(conn, edge.src, edge.dst, edge.rel)
 
 
-def write_cooccurrence(
-    conn: sqlite3.Connection, document_id: str, max_entities: int = 25
-) -> None:
+def write_cooccurrence(conn: sqlite3.Connection, document_id: str, max_entities: int = 25) -> None:
     """Remember which entities share a chunk. Bounded: at most 25 per chunk."""
     rows = conn.execute(
         "SELECT c.id AS chunk_id, m.name AS name FROM chunks c "
@@ -77,9 +73,7 @@ def write_cooccurrence(
             )
 
 
-def cooccurrence_pairs(
-    conn: sqlite3.Connection, per_node: int = 3
-) -> list[tuple[str, str, float]]:
+def cooccurrence_pairs(conn: sqlite3.Connection, per_node: int = 3) -> list[tuple[str, str, float]]:
     """Strongest co-occurrence partners per entity, capped so the map stays readable."""
     rows = conn.execute(
         "SELECT src, dst, COUNT(*) AS weight FROM chunk_pairs GROUP BY src, dst"
@@ -138,9 +132,7 @@ def delete_document(db, document_id: str) -> dict[str, int]:
             vectors.delete(tx, "entity", name)
         for src, dst, rel in affected_edges:
             _recompute_edge(tx, src, dst, rel)
-        tx.execute(
-            "DELETE FROM entities WHERE name NOT IN (SELECT name FROM entity_mentions)"
-        )
+        tx.execute("DELETE FROM entities WHERE name NOT IN (SELECT name FROM entity_mentions)")
         tx.execute(
             "DELETE FROM edges WHERE NOT EXISTS ("
             "SELECT 1 FROM edge_mentions m "
@@ -155,9 +147,7 @@ def delete_document(db, document_id: str) -> dict[str, int]:
 
 
 def _recompute_entity(conn: sqlite3.Connection, name: str) -> None:
-    rows = conn.execute(
-        "SELECT description FROM entity_mentions WHERE name=?", (name,)
-    ).fetchall()
+    rows = conn.execute("SELECT description FROM entity_mentions WHERE name=?", (name,)).fetchall()
     if not rows:
         return
     description = ""
@@ -266,8 +256,7 @@ def graph_payload(
             "community": communities.get(row["name"]),
         }
         for row in rows
-        if degrees.get(row["name"], 0) >= min_degree
-        and (members is None or row["name"] in members)
+        if degrees.get(row["name"], 0) >= min_degree and (members is None or row["name"] in members)
     ]
     nodes.sort(key=lambda node: node["degree"], reverse=True)
     nodes = nodes[:limit]
@@ -294,14 +283,22 @@ def graph_payload(
         node_id = f"doc:{row['document_id']}"
         if node_id not in documents:
             documents[node_id] = {
-                "id": node_id, "type": "DOCUMENT", "name": row["filename"],
-                "description": "", "degree": 0, "mentions": 0,
+                "id": node_id,
+                "type": "DOCUMENT",
+                "name": row["filename"],
+                "description": "",
+                "degree": 0,
+                "mentions": 0,
             }
         documents[node_id]["mentions"] += row["weight"]
         edges.append(
             {
-                "src": node_id, "dst": row["entity"], "rel": "MENTIONED_IN",
-                "description": "", "weight": row["weight"], "kind": "mention",
+                "src": node_id,
+                "dst": row["entity"],
+                "rel": "MENTIONED_IN",
+                "description": "",
+                "weight": row["weight"],
+                "kind": "mention",
             }
         )
 
@@ -313,8 +310,12 @@ def graph_payload(
             continue
         edges.append(
             {
-                "src": left, "dst": right, "rel": "CO_OCCURS",
-                "description": "", "weight": weight, "kind": "cooccur",
+                "src": left,
+                "dst": right,
+                "rel": "CO_OCCURS",
+                "description": "",
+                "weight": weight,
+                "kind": "cooccur",
             }
         )
 

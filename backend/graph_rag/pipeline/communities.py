@@ -35,9 +35,7 @@ def detect(conn: sqlite3.Connection) -> list[list[str]]:
     graph.add_edges_from(
         (row["src"], row["dst"]) for row in conn.execute("SELECT src, dst FROM edges")
     )
-    graph.add_edges_from(
-        (left, right) for left, right, _ in cooccurrence_pairs(conn)
-    )
+    graph.add_edges_from((left, right) for left, right, _ in cooccurrence_pairs(conn))
     if graph.number_of_nodes() == 0:
         return []
     if graph.number_of_edges() == 0:
@@ -64,15 +62,20 @@ def rebuild(db: Database, llm=None, embed=None, max_llm: int = 12) -> int:
         ).fetchone()
         if cached:
             title, summary, findings, rating = (
-                cached["title"], cached["summary"], cached["findings"], cached["rating"],
+                cached["title"],
+                cached["summary"],
+                cached["findings"],
+                cached["rating"],
             )
             source = "llm"
         else:
             use_llm = llm if llm and index < max_llm and len(members) >= 2 else None
             community = _summarize(use_llm, index, members, conn)
             title, summary, findings, rating = (
-                community.title, community.summary,
-                json.dumps(community.findings), community.rating,
+                community.title,
+                community.summary,
+                json.dumps(community.findings),
+                community.rating,
             )
             source = "llm" if use_llm is not None else "heuristic"
         vector = embed.one(f"{title}\n{summary}") if embed is not None else None
@@ -113,14 +116,17 @@ def _summarize(llm, index: int, members: list[str], conn: sqlite3.Connection) ->
                 members,
             )
         )
-        relations = "\n".join(
-            f"- {row['src']} -[{row['rel']}]-> {row['dst']}: {row['description']}"
-            for row in conn.execute(
-                f"SELECT src, dst, rel, description FROM edges "
-                f"WHERE src IN ({placeholders}) AND dst IN ({placeholders})",
-                [*members, *members],
+        relations = (
+            "\n".join(
+                f"- {row['src']} -[{row['rel']}]-> {row['dst']}: {row['description']}"
+                for row in conn.execute(
+                    f"SELECT src, dst, rel, description FROM edges "
+                    f"WHERE src IN ({placeholders}) AND dst IN ({placeholders})",
+                    [*members, *members],
+                )
             )
-        ) or "None"
+            or "None"
+        )
         data = llm.generate_json(
             SUMMARY_USER.format(entities=entities, relations=relations[:4000]),
             SUMMARY_SYSTEM,

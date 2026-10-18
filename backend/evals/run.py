@@ -33,7 +33,13 @@ def build_index(db: Database, llm, embed, model: str, extractor: str = "recorded
             db, path.name, path.read_text(encoding="utf-8"), 800, 120
         )
         indexer.index_document(
-            db, llm, embed, model, document_id, batch_size=3, max_llm_summaries=0,
+            db,
+            llm,
+            embed,
+            model,
+            document_id,
+            batch_size=3,
+            max_llm_summaries=0,
             mode="fast" if extractor == "fast" else "llm",
         )
 
@@ -58,9 +64,7 @@ def score(db: Database, llm, embed) -> dict:
                     else None
                 ),
                 "chunks_ok": (
-                    any(term in chunk_text for term in expected_terms)
-                    if expected_terms
-                    else None
+                    any(term in chunk_text for term in expected_terms) if expected_terms else None
                 ),
             }
         )
@@ -100,7 +104,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="use Groq instead of the recording")
     parser.add_argument(
-        "--extractor", choices=["recorded", "fast"], default="recorded",
+        "--extractor",
+        choices=["recorded", "fast"],
+        default="recorded",
         help="recorded: replayed LLM extraction; fast: rule-based, no LLM",
     )
     parser.add_argument("--out", default=str(Path(__file__).with_name("report.json")))
@@ -128,9 +134,7 @@ def main() -> int:
         Path(arguments.out).write_text(json.dumps(report, indent=2), encoding="utf-8")
         db.close()
 
-    failed = [
-        name for name, minimum in THRESHOLDS.items() if report[name] < minimum
-    ]
+    failed = [name for name, minimum in THRESHOLDS.items() if report[name] < minimum]
     if failed:
         print(f"FAILED thresholds: {', '.join(failed)}")
         return 1

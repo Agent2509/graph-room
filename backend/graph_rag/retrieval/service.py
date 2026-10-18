@@ -22,9 +22,7 @@ def prepare(
     if document_id and mode != "global":
         mode = "local"  # a scoped question is always about one document
     if mode not in {"local", "global"}:
-        has_communities = (
-            conn.execute("SELECT COUNT(*) AS c FROM communities").fetchone()["c"] > 0
-        )
+        has_communities = conn.execute("SELECT COUNT(*) AS c FROM communities").fetchone()["c"] > 0
         mode = router.decide(llm, question, has_communities)
     if mode == "global":
         return global_.prepare(conn, embed, question)
@@ -71,9 +69,7 @@ async def stream_answer(
             "mode": context["mode"],
             "entities": context["entities"],
             "edges": context["edges"],
-            "chunks": [
-                {"id": c["id"], "document_id": c["document_id"]} for c in context["chunks"]
-            ],
+            "chunks": [{"id": c["id"], "document_id": c["document_id"]} for c in context["chunks"]],
         },
     )
     if not context["prompt"]:

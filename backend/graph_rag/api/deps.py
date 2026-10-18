@@ -11,9 +11,7 @@ from graph_rag.llm import BaseLLM, GroqLLM
 MAX_CACHED_CLIENTS = 8
 
 
-def require_token(
-    request: Request, authorization: str | None = Header(default=None)
-) -> None:
+def require_token(request: Request, authorization: str | None = Header(default=None)) -> None:
     """No API_TOKEN set means open (local dev). Otherwise require it on every route."""
     token = request.app.state.settings.api_token
     if not token:
@@ -80,6 +78,7 @@ def get_extraction_llm(
     if request.app.state.settings.extraction_mode == "fast":
         return None
     return _client(
-        request, _require_key(request, x_llm_key),
+        request,
+        _require_key(request, x_llm_key),
         request.app.state.settings.extraction_model,
     )

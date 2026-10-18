@@ -19,15 +19,21 @@ def test_chunks_are_content_addressed(db):
 def test_fts_follows_chunk_lifecycle(db):
     add_document(db, "a.txt", "NexusLabs builds CortexGraph in Boston.", 200, 20)
     conn = db.conn()
-    assert conn.execute(
-        "SELECT COUNT(*) AS c FROM chunks_fts WHERE chunks_fts MATCH 'nexuslabs'"
-    ).fetchone()["c"] == 1
+    assert (
+        conn.execute(
+            "SELECT COUNT(*) AS c FROM chunks_fts WHERE chunks_fts MATCH 'nexuslabs'"
+        ).fetchone()["c"]
+        == 1
+    )
 
     document_id = conn.execute("SELECT id FROM documents").fetchone()["id"]
     conn.execute("DELETE FROM documents WHERE id=?", (document_id,))
-    assert conn.execute(
-        "SELECT COUNT(*) AS c FROM chunks_fts WHERE chunks_fts MATCH 'nexuslabs'"
-    ).fetchone()["c"] == 0
+    assert (
+        conn.execute(
+            "SELECT COUNT(*) AS c FROM chunks_fts WHERE chunks_fts MATCH 'nexuslabs'"
+        ).fetchone()["c"]
+        == 0
+    )
     assert conn.execute("SELECT COUNT(*) AS c FROM chunks").fetchone()["c"] == 0
 
 

@@ -16,9 +16,7 @@ def update(db: Database, job_id: str, **fields) -> None:
         return
     values["updated_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     assignments = ", ".join(f"{key}=?" for key in values)
-    db.conn().execute(
-        f"UPDATE jobs SET {assignments} WHERE id=?", (*values.values(), job_id)
-    )
+    db.conn().execute(f"UPDATE jobs SET {assignments} WHERE id=?", (*values.values(), job_id))
 
 
 def get(db: Database, job_id: str) -> dict | None:

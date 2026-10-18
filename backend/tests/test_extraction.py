@@ -11,7 +11,9 @@ from graph_rag.pipeline.resolver import (
 
 BATCH = [
     TextChunk(id="d#0000", document_id="d", idx=0, text="Alice founded NexusLabs.", token_count=3),
-    TextChunk(id="d#0001", document_id="d", idx=1, text="NexusLabs builds CortexGraph.", token_count=3),
+    TextChunk(
+        id="d#0001", document_id="d", idx=1, text="NexusLabs builds CortexGraph.", token_count=3
+    ),
 ]
 
 
@@ -19,8 +21,12 @@ def test_bad_weight_cannot_kill_a_batch():
     payload = {
         "entities": [{"name": "Alice"}, {"name": "NexusLabs"}],
         "relationships": [
-            {"source": "Alice", "target": "NexusLabs", "relation_type": "founded",
-             "weight": "1.0 (high)"},
+            {
+                "source": "Alice",
+                "target": "NexusLabs",
+                "relation_type": "founded",
+                "weight": "1.0 (high)",
+            },
             {"source": "Alice", "target": "NexusLabs", "relation_type": "FOUNDED", "weight": None},
         ],
     }
@@ -62,9 +68,7 @@ def test_entity_resolution_dedupes_and_promotes_type():
 
 def test_edges_with_unknown_endpoints_are_dropped():
     entities = resolve_entities([ExtractedEntity(name="Alice")])
-    edges = resolve_edges(
-        [ExtractedEdge(src="Alice", dst="Ghost", rel="KNOWS")], entities
-    )
+    edges = resolve_edges([ExtractedEdge(src="Alice", dst="Ghost", rel="KNOWS")], entities)
     assert edges == []
 
 

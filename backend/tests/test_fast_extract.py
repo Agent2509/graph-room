@@ -16,7 +16,9 @@ def _chunk(text: str = TEXT) -> TextChunk:
 
 
 def test_sentences_do_not_split_abbreviations():
-    parts = [sentence for _, _, sentence in sentences("Dr. Zhao met Prof. Smith. Inc. filed later.")]
+    parts = [
+        sentence for _, _, sentence in sentences("Dr. Zhao met Prof. Smith. Inc. filed later.")
+    ]
     assert parts[0].startswith("Dr. Zhao met Prof. Smith")
     assert parts[-1].startswith("Inc.")
 
@@ -105,9 +107,7 @@ def test_isolated_entities_are_not_communities(db, semantic_embed):
     from graph_rag.pipeline.graph import write_extraction
 
     with db.tx() as tx:
-        write_extraction(
-            tx, {"a": ExtractedEntity(name="A", chunk_ids=[])}, []
-        )
+        write_extraction(tx, {"a": ExtractedEntity(name="A", chunk_ids=[])}, [])
     assert communities.detect(db.conn()) == []
 
 
@@ -154,7 +154,10 @@ def test_cooccurrence_pairs_are_kind_tagged_and_bounded(db, semantic_embed):
 
 def test_file_references_and_generic_docs_are_not_entities():
     text = "See ARCHITECTURE.md and setup.py. The Doc is a Document. Fine-tune the model."
-    entities, _ = fast_extract.extract([_chunk(text)], __import__("tests.conftest", fromlist=["SemanticEmbedder"]).SemanticEmbedder())
+    entities, _ = fast_extract.extract(
+        [_chunk(text)],
+        __import__("tests.conftest", fromlist=["SemanticEmbedder"]).SemanticEmbedder(),
+    )
     names = {entity.name for entity in entities}
     assert "ARCHITECTURE.md" not in names
     assert "Doc" not in names

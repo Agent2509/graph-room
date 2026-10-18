@@ -21,43 +21,202 @@ MAX_SPANS_PER_SENTENCE = 6
 
 HONORIFICS = {"dr", "prof", "mr", "mrs", "ms"}
 STOP_PREFIX = {
-    "the", "this", "that", "these", "those", "in", "on", "at", "for", "with", "by",
-    "from", "and", "or", "an", "a", "following", "under", "recognizing", "based",
-    "mid", "early", "late", "during", "after", "before", "its", "their", "his", "her",
-    "our", "your", "when", "while", "as", "to", "of", "also", "however", "then", "now",
-    "here", "there", "such", "each", "both", "all", "more", "most", "other", "another",
+    "the",
+    "this",
+    "that",
+    "these",
+    "those",
+    "in",
+    "on",
+    "at",
+    "for",
+    "with",
+    "by",
+    "from",
+    "and",
+    "or",
+    "an",
+    "a",
+    "following",
+    "under",
+    "recognizing",
+    "based",
+    "mid",
+    "early",
+    "late",
+    "during",
+    "after",
+    "before",
+    "its",
+    "their",
+    "his",
+    "her",
+    "our",
+    "your",
+    "when",
+    "while",
+    "as",
+    "to",
+    "of",
+    "also",
+    "however",
+    "then",
+    "now",
+    "here",
+    "there",
+    "such",
+    "each",
+    "both",
+    "all",
+    "more",
+    "most",
+    "other",
+    "another",
 }
 ORG_SUFFIXES = {
-    "labs", "inc", "corp", "corporation", "llc", "ltd", "co", "bio", "ai", "systems",
-    "cloud", "group", "agency", "university", "institute", "hospital", "foundation",
-    "partners", "technologies", "therapeutics", "biosciences", "pharma", "capital",
-    "bank", "media", "network", "networks", "software", "studios", "ventures",
+    "labs",
+    "inc",
+    "corp",
+    "corporation",
+    "llc",
+    "ltd",
+    "co",
+    "bio",
+    "ai",
+    "systems",
+    "cloud",
+    "group",
+    "agency",
+    "university",
+    "institute",
+    "hospital",
+    "foundation",
+    "partners",
+    "technologies",
+    "therapeutics",
+    "biosciences",
+    "pharma",
+    "capital",
+    "bank",
+    "media",
+    "network",
+    "networks",
+    "software",
+    "studios",
+    "ventures",
 }
 MONTHS = {
-    "january", "february", "march", "april", "may", "june", "july", "august",
-    "september", "october", "november", "december", "jan", "feb", "mar", "apr",
-    "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "sept",
+    "oct",
+    "nov",
+    "dec",
 }
 ROLE_WORDS = {
-    "chief", "officer", "director", "head", "professor", "ceo", "cto", "founder",
-    "president", "manager", "senior", "vice", "lead",
+    "chief",
+    "officer",
+    "director",
+    "head",
+    "professor",
+    "ceo",
+    "cto",
+    "founder",
+    "president",
+    "manager",
+    "senior",
+    "vice",
+    "lead",
 }
 LOCATIVE_PREPOSITIONS = {"in", "at", "from"}
 LOCATIVE_CUES = ("based in", "headquartered in", "located in", "operates from", "based out of")
 VERB_HINTS = {
-    "founded", "co-founded", "established", "started", "acquired", "bought",
-    "purchased", "developed", "built", "created", "engineered", "designed",
-    "entered", "partnered", "collaborated", "teamed", "signed", "provides",
-    "supplies", "offers", "hosts", "serves", "based", "headquartered", "located",
-    "works", "joined", "appointed", "promoted", "employed", "granted", "approved",
-    "authorized", "gave", "uses", "used", "deployed", "adopted", "implemented",
-    "invested", "backed", "owns", "operates", "supports", "enables",
-    "part", "subsidiary", "division",
+    "founded",
+    "co-founded",
+    "established",
+    "started",
+    "acquired",
+    "bought",
+    "purchased",
+    "developed",
+    "built",
+    "created",
+    "engineered",
+    "designed",
+    "entered",
+    "partnered",
+    "collaborated",
+    "teamed",
+    "signed",
+    "provides",
+    "supplies",
+    "offers",
+    "hosts",
+    "serves",
+    "based",
+    "headquartered",
+    "located",
+    "works",
+    "joined",
+    "appointed",
+    "promoted",
+    "employed",
+    "granted",
+    "approved",
+    "authorized",
+    "gave",
+    "uses",
+    "used",
+    "deployed",
+    "adopted",
+    "implemented",
+    "invested",
+    "backed",
+    "owns",
+    "operates",
+    "supports",
+    "enables",
+    "part",
+    "subsidiary",
+    "division",
 }
 AUXILIARIES = {"was", "were", "is", "are", "been", "being", "has", "have", "had", "will", "would"}
 PASSIVE = re.compile(r"\b(was|were|is|are|been|being)\b[^,;]{0,40}\bby\b", re.IGNORECASE)
 AGENTLESS_PASSIVE = re.compile(r"\b\w+ed by\b", re.IGNORECASE)
-ABBREVIATIONS = {"dr", "prof", "mr", "mrs", "ms", "inc", "corp", "ltd", "co", "vs", "e.g", "i.e", "u.s", "st"}
+ABBREVIATIONS = {
+    "dr",
+    "prof",
+    "mr",
+    "mrs",
+    "ms",
+    "inc",
+    "corp",
+    "ltd",
+    "co",
+    "vs",
+    "e.g",
+    "i.e",
+    "u.s",
+    "st",
+}
 
 CODE_BLOCK = re.compile(r"```[\s\S]*?```")
 HEADING = re.compile(r"^#{1,6}.*$", re.MULTILINE)
@@ -76,44 +235,71 @@ CAP_RE = re.compile(
 # One label per row of intent. Phrases are what the between-text looks like.
 LABEL_PROTOTYPES: dict[str, list[str]] = {
     "FOUNDED": [
-        "founded the company", "co-founded the company", "established the organization",
-        "started the business", "the founding of",
+        "founded the company",
+        "co-founded the company",
+        "established the organization",
+        "started the business",
+        "the founding of",
     ],
     "ACQUIRED": [
-        "acquired the company", "bought the company", "purchased the business",
+        "acquired the company",
+        "bought the company",
+        "purchased the business",
         "the acquisition of",
     ],
     "DEVELOPED": [
-        "developed the product", "built the system", "created the technology",
-        "engineered the treatment", "designed the platform",
+        "developed the product",
+        "built the system",
+        "created the technology",
+        "engineered the treatment",
+        "designed the platform",
     ],
     "PARTNERS_WITH": [
-        "entered a partnership with", "collaborated with", "teamed up with",
-        "signed an agreement with", "the partnership between",
+        "entered a partnership with",
+        "collaborated with",
+        "teamed up with",
+        "signed an agreement with",
+        "the partnership between",
     ],
     "PROVIDES": [
-        "provides infrastructure to", "supplies services to", "offers cloud capacity to",
+        "provides infrastructure to",
+        "supplies services to",
+        "offers cloud capacity to",
         "hosts data for",
     ],
     "BASED_IN": [
-        "is headquartered in", "is based in", "is located in", "operates from",
+        "is headquartered in",
+        "is based in",
+        "is located in",
+        "operates from",
     ],
     "WORKS_FOR": [
-        "works for", "joined the company", "employed by", "member of the team at",
+        "works for",
+        "joined the company",
+        "employed by",
+        "member of the team at",
     ],
     "PROMOTED": [
-        "promoted the employee to", "appointed the executive as", "named the chief officer",
+        "promoted the employee to",
+        "appointed the executive as",
+        "named the chief officer",
     ],
     "GRANTED": [
-        "granted approval to", "approved the treatment", "authorized the drug",
+        "granted approval to",
+        "approved the treatment",
+        "authorized the drug",
         "gave priority review to",
     ],
     "USES": [
-        "uses the technology", "deployed the system", "adopted the platform",
+        "uses the technology",
+        "deployed the system",
+        "adopted the platform",
         "implemented the framework",
     ],
     "PART_OF": [
-        "is a subsidiary of", "is part of", "is a division of",
+        "is a subsidiary of",
+        "is part of",
+        "is a division of",
     ],
 }
 
@@ -132,7 +318,9 @@ def extract(
     """Extract entities and relations using spans + embedding-labelled verb phrases."""
     entities: dict[str, ExtractedEntity] = {}
     occurrences: dict[str, int] = {}
-    candidates: list[tuple[str, str, str, str, str, str]] = []  # chunk, sentence, src, mid, dst, types
+    candidates: list[
+        tuple[str, str, str, str, str, str]
+    ] = []  # chunk, sentence, src, mid, dst, types
 
     for chunk in chunks:
         for _, _, sentence in sentences(strip_code(chunk.text)):
@@ -153,9 +341,7 @@ def extract(
                     continue
                 if source.name == right.name:
                     continue
-                candidates.append(
-                    (chunk.id, sentence, source.name, mid, right.name, spans[0].name)
-                )
+                candidates.append((chunk.id, sentence, source.name, mid, right.name, spans[0].name))
 
     entities = {
         key: entity
@@ -183,8 +369,12 @@ def extract(
         existing = edges.get(key)
         if existing is None:
             edges[key] = ExtractedEdge(
-                src=source, dst=target, rel=label,
-                description=sentence[:400], weight=1.0, chunk_ids=[chunk_id],
+                src=source,
+                dst=target,
+                rel=label,
+                description=sentence[:400],
+                weight=1.0,
+                chunk_ids=[chunk_id],
             )
         else:
             existing.weight += 1.0
@@ -194,9 +384,7 @@ def extract(
     return list(entities.values()), list(edges.values())
 
 
-def classify(
-    phrases: list[str], embed, threshold: float
-) -> tuple[list[str | None], list[float]]:
+def classify(phrases: list[str], embed, threshold: float) -> tuple[list[str | None], list[float]]:
     """Map between-texts to a label; None when below threshold or ambiguous."""
     prototypes: list[str] = []
     owners: list[int] = []
@@ -254,7 +442,9 @@ def sentences(text: str) -> list[tuple[int, int, str]]:
             merged[-1] = (merged[-1][0], end)
         else:
             merged.append((begin, end))
-    return [(begin, end, text[begin:end].strip()) for begin, end in merged if text[begin:end].strip()]
+    return [
+        (begin, end, text[begin:end].strip()) for begin, end in merged if text[begin:end].strip()
+    ]
 
 
 def find_spans(sentence: str) -> list[Span]:
@@ -287,8 +477,12 @@ def find_spans(sentence: str) -> list[Span]:
             and follow.start - current.end <= 2
         ):
             spans.append(
-                Span(start=current.start, end=follow.end,
-                     name=f"{current.name} {follow.name}", type="PERSON")
+                Span(
+                    start=current.start,
+                    end=follow.end,
+                    name=f"{current.name} {follow.name}",
+                    type="PERSON",
+                )
             )
             index += 2
             continue
@@ -303,7 +497,9 @@ def find_spans(sentence: str) -> list[Span]:
             continue
         if lowered[0] in ROLE_WORDS:
             continue
-        if IDENTIFIER.match(span.name) and ("_" in span.name or any(c.isdigit() for c in span.name)):
+        if IDENTIFIER.match(span.name) and (
+            "_" in span.name or any(c.isdigit() for c in span.name)
+        ):
             continue
         if FILE_REF.search(span.name):
             continue
@@ -352,8 +548,10 @@ def _keep_entity(entity: ExtractedEntity, count: int) -> bool:
         return True
     if " " in entity.name:
         return True
-    return any(char.isdigit() for char in entity.name) or "-" in entity.name or (
-        entity.name != entity.name.capitalize()
+    return (
+        any(char.isdigit() for char in entity.name)
+        or "-" in entity.name
+        or (entity.name != entity.name.capitalize())
     )
 
 

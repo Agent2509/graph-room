@@ -68,9 +68,7 @@ class GroqLLM(BaseLLM):
     def generate(self, prompt: str, system: str | None = None) -> str:
         messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
-        response = self._call(
-            model=self.model, messages=messages, temperature=0.0, max_tokens=2048
-        )
+        response = self._call(model=self.model, messages=messages, temperature=0.0, max_tokens=2048)
         return response.choices[0].message.content or ""
 
     def generate_json(self, prompt: str, system: str | None = None) -> dict[str, Any]:
@@ -102,8 +100,11 @@ class GroqLLM(BaseLLM):
         for attempt in range(4):
             try:
                 result = await self._async.chat.completions.create(
-                    model=self.model, messages=messages, temperature=0.0,
-                    max_tokens=2048, stream=True,
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.0,
+                    max_tokens=2048,
+                    stream=True,
                 )
                 break
             except Exception as error:  # noqa: BLE001 - retry policy is the point

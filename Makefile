@@ -19,7 +19,8 @@ test:
 	cd backend && $(PYTEST) -q
 
 lint:
-	cd backend && $(RUFF) check graph_rag tests
+	cd backend && $(RUFF) check graph_rag tests evals
+	cd backend && $(RUFF) format --check graph_rag tests evals
 
 eval:
 	$(PY) backend/evals/run.py

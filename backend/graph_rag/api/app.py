@@ -20,9 +20,7 @@ logger = logging.getLogger("graph_rag")
 
 def create_app(config: Settings | None = None, llm=None, embed=None) -> FastAPI:
     config = config or config_module.settings
-    logging.basicConfig(
-        level=config.log_level, format="%(levelname)s %(name)s: %(message)s"
-    )
+    logging.basicConfig(level=config.log_level, format="%(levelname)s %(name)s: %(message)s")
 
     app = FastAPI(
         title="Graph RAG 2.0",
