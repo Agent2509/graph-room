@@ -13,7 +13,10 @@ const COLORS: Record<string, string> = {
   CONCEPT: "#b9b3a3",
   LOCATION: "#c4693f",
   EVENT: "#c58fb5",
+  DOCUMENT: "#5f7f8c",
 };
+
+const colorOf = (node: GraphNode) => COLORS[node.type] ?? COLORS.CONCEPT;
 
 export default function GraphView({
   nodes,
@@ -27,17 +30,35 @@ export default function GraphView({
   const container = useRef<HTMLDivElement>(null);
   const graphRef = useRef<{ zoomToFit: (ms?: number, padding?: number) => void } | null>(null);
   const [size, setSize] = useState({ width: 900, height: 620 });
+  const [focus, setFocus] = useState<string | null>(null);
+
+  const active = useMemo(() => {
+    if (!focus) return null;
+    const set = new Set<string>([focus]);
+    for (const link of links) {
+      if (link.src === focus) set.add(link.dst);
+      if (link.dst === focus) set.add(link.src);
+    }
+    return set;
+  }, [focus, links]);
+
+  // The canvas painter runs every frame; keep the current focus in a ref.
+  const activeRef = useRef<Set<string> | null>(active);
+  activeRef.current = active;
 
   useEffect(() => {
     const element = container.current;
     if (!element) return;
-    const measure = () =>
-      setSize({ width: element.clientWidth, height: element.clientHeight });
+    const measure = () => setSize({ width: element.clientWidth, height: element.clientHeight });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!nodes.some((node) => node.id === focus)) setFocus(null);
+  }, [nodes, focus]);
 
   const data = useMemo(
     () => ({
@@ -47,28 +68,105 @@ export default function GraphView({
     [nodes, links],
   );
 
+  // Pull disconnected components toward the middle. Without this, two documents
+  // with no relation between them drift to opposite corners of the canvas.
+  useEffect(() => {
+    const graph = graphRef.current as {
+      d3Force?: (name: string, force?: unknown) => unknown;
+    } | null;
+    if (!graph?.d3Force) return;
+    (graph.d3Force("charge") as { strength?: (value: number) => void } | undefined)?.strength?.(-140);
+    (graph.d3Force("link") as { distance?: (value: number) => void } | undefined)?.distance?.(80);
+    graph.d3Force("centering", (alpha: number) => {
+      const cx = size.width / 2;
+      const cy = size.height / 2;
+      for (const node of data.nodes as (GraphNode & { x?: number; y?: number })[]) {
+        node.x = (node.x ?? cx) + (cx - (node.x ?? cx)) * 0.15 * alpha;
+        node.y = (node.y ?? cy) + (cy - (node.y ?? cy)) * 0.15 * alpha;
+      }
+    });
+  }, [data, size]);
+
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => graphRef.current?.zoomToFit(450, 90), 900);
+    return () => window.clearTimeout(timer);
+  }, [data]);
+
+  const dim = (id: string) => {
+    const set = activeRef.current;
+    return set ? (set.has(id) ? 1 : 0.1) : 1;
+  };
+
   return (
     <div ref={container} style={{ position: "absolute", inset: 0 }}>
       <ForceGraph2D
         ref={graphRef as never}
-        graphData={data}
+        graphData={data as never}
         width={size.width}
         height={size.height}
         backgroundColor="#0b1310"
-        nodeRelSize={4}
-        nodeVal={(node: GraphNode) => 1 + Math.sqrt(node.degree)}
-        nodeColor={(node: GraphNode) => COLORS[node.type] ?? COLORS.CONCEPT}
-        nodeLabel={(node: GraphNode) => `${node.id} · ${node.type.toLowerCase()}`}
-        linkColor={() => "rgba(237,231,218,0.16)"}
-        linkWidth={0.6}
-        linkDirectionalArrowLength={3}
-        linkDirectionalArrowRelPos={1}
-        linkLabel={(link: GraphLink) => link.rel}
-        onNodeClick={(node: GraphNode) => onSelect(node)}
         cooldownTicks={160}
         warmupTicks={40}
-        onEngineStop={() => graphRef.current?.zoomToFit(500, 70)}
         d3VelocityDecay={0.32}
+        onEngineStop={() => graphRef.current?.zoomToFit(500, 70)}
+        onBackgroundClick={() => setFocus(null)}
+        onNodeClick={(node: any) => {
+          setFocus((current) => (current === node.id ? null : node.id));
+          onSelect(node);
+        }}
+        linkColor={(link: GraphLink) => {
+          if (link.kind === "mention") return "rgba(95,127,140,0.28)";
+          const set = activeRef.current;
+          if (!set) return "rgba(237,231,218,0.16)";
+          return set.has(link.src) && set.has(link.dst)
+            ? "rgba(143,191,155,0.6)"
+            : "rgba(237,231,218,0.04)";
+        }}
+        linkWidth={(link: GraphLink) => (link.kind === "mention" ? 0.4 : 0.8)}
+        linkDirectionalArrowLength={(link: GraphLink) => (link.kind === "mention" ? 0 : 3)}
+        linkDirectionalArrowRelPos={1}
+        linkLabel={(link: GraphLink) => link.rel}
+        nodeLabel={(node: GraphNode) => `${node.name ?? node.id} · ${node.type.toLowerCase()}`}
+        nodeCanvasObject={(node: any, ctx, scale) => {
+          const alpha = dim(node.id);
+          const radius =
+            node.type === "DOCUMENT" ? 5.5 : 3.2 + Math.sqrt(Math.max(node.degree, 0));
+
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = colorOf(node);
+          ctx.fill();
+          if (node.type === "DOCUMENT") {
+            ctx.lineWidth = 1.2 / scale;
+            ctx.strokeStyle = "rgba(237,231,218,0.55)";
+            ctx.stroke();
+          }
+
+          if (scale > 0.55 || (activeRef.current?.has(node.id) ?? false)) {
+            const fontSize = Math.max(7, 11 / scale);
+            ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle =
+              alpha < 1
+                ? "rgba(237,231,218,0.18)"
+                : node.type === "DOCUMENT"
+                  ? "rgba(237,231,218,0.62)"
+                  : "rgba(237,231,218,0.9)";
+            ctx.fillText(node.name ?? node.id, node.x + radius + 2 / scale, node.y);
+          }
+          ctx.globalAlpha = 1;
+        }}
+        nodePointerAreaPaint={(node: any, color, ctx) => {
+          const radius =
+            node.type === "DOCUMENT" ? 7 : 5 + Math.sqrt(Math.max(node.degree, 0));
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }}
       />
     </div>
   );

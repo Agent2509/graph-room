@@ -59,6 +59,8 @@ AGENTLESS_PASSIVE = re.compile(r"\b\w+ed by\b", re.IGNORECASE)
 ABBREVIATIONS = {"dr", "prof", "mr", "mrs", "ms", "inc", "corp", "ltd", "co", "vs", "e.g", "i.e", "u.s", "st"}
 
 CODE_BLOCK = re.compile(r"```[\s\S]*?```")
+HEADING = re.compile(r"^#{1,6}.*$", re.MULTILINE)
+TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
 INLINE_CODE = re.compile(r"`[^`\n]{1,80}`")
 IDENTIFIER = re.compile(r"^[A-Z][A-Z0-9_]*$")
 CAP_RE = re.compile(
@@ -215,8 +217,11 @@ def classify(
 
 
 def strip_code(text: str) -> str:
-    """Code blocks and inline code are not prose; identifiers make junk entities."""
-    return INLINE_CODE.sub(" ", CODE_BLOCK.sub(" ", text))
+    """Nothing structural is prose: code, headings and tables make junk entities."""
+    text = CODE_BLOCK.sub(" ", text)
+    text = INLINE_CODE.sub(" ", text)
+    text = HEADING.sub(" ", text)
+    return TABLE_ROW.sub(" ", text)
 
 
 def sentences(text: str) -> list[tuple[int, int, str]]:

@@ -41,7 +41,8 @@ def test_write_is_idempotent(db):
     _write(db.conn(), chunk, entities, edges)
     _write(db.conn(), chunk, entities, edges)
     assert db.conn().execute("SELECT weight FROM edges").fetchone()["weight"] == 1.0
-    assert len(graph_pipeline.graph_payload(db.conn())["nodes"]) == 2
+    nodes = graph_pipeline.graph_payload(db.conn())["nodes"]
+    assert len([node for node in nodes if node["type"] != "DOCUMENT"]) == 2
 
 
 def test_delete_recomputes_entity_and_drops_orphans(db):
@@ -99,3 +100,19 @@ def test_vectors_are_removed_on_delete(db):
     _write(db.conn(), chunk, [ExtractedEntity(name="Alice")], [])
     graph_pipeline.delete_document(db, doc)
     assert db.conn().execute("SELECT COUNT(*) AS c FROM vec_items").fetchone()["c"] == 0
+
+
+def test_payload_links_documents_to_entities(db):
+    from graph_rag.pipeline.indexer import add_document
+
+    document_id, _ = add_document(db, "a.txt", "Alice Zhao founded NexusLabs.", 500, 50)
+    chunk_id = db.conn().execute("SELECT id FROM chunks").fetchone()["id"]
+    _write(db.conn(), chunk_id, [ExtractedEntity(name="Alice Zhao")], [])
+
+    payload = graph_pipeline.graph_payload(db.conn())
+    doc_nodes = [node for node in payload["nodes"] if node["type"] == "DOCUMENT"]
+    mention_edges = [edge for edge in payload["edges"] if edge["kind"] == "mention"]
+    assert doc_nodes and doc_nodes[0]["id"] == f"doc:{document_id}"
+    assert doc_nodes[0]["mentions"] == 1
+    assert mention_edges[0]["src"] == f"doc:{document_id}"
+    assert mention_edges[0]["dst"] == "Alice Zhao"

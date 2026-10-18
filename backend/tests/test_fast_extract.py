@@ -109,3 +109,13 @@ def test_isolated_entities_are_not_communities(db, semantic_embed):
             tx, {"a": ExtractedEntity(name="A", chunk_ids=[])}, []
         )
     assert communities.detect(db.conn()) == []
+
+
+def test_markdown_headings_and_tables_are_not_entities():
+    from graph_rag.pipeline.fast_extract import strip_code
+
+    markdown = "# Architecture\n\n## Team\n\n| Model | Size |\n| --- | --- |\n| Fauma | 3B |\n"
+    names = {span.name for span in find_spans(strip_code(markdown))}
+    assert "Architecture" not in names
+    assert "Team" not in names
+    assert "Model" not in names

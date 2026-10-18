@@ -216,10 +216,36 @@ def graph_payload(
     keep = {node["id"] for node in nodes}
 
     edges = [
-        dict(row)
-        for row in conn.execute(
-            "SELECT src, dst, rel, description, weight FROM edges"
-        )
+        {**dict(row), "kind": "relation"}
+        for row in conn.execute("SELECT src, dst, rel, description, weight FROM edges")
         if row["src"] in keep and row["dst"] in keep
     ]
+
+    # Structural edges: every document points at the entities it mentions. Without
+    # these a document with no prose relations produced a blank canvas.
+    documents: dict[str, dict] = {}
+    for row in conn.execute(
+        "SELECT d.id AS document_id, d.filename, m.name AS entity, COUNT(*) AS weight "
+        "FROM entity_mentions m "
+        "JOIN chunks c ON c.id = m.chunk_id "
+        "JOIN documents d ON d.id = c.document_id "
+        "GROUP BY d.id, m.name"
+    ):
+        if row["entity"] not in keep:
+            continue
+        node_id = f"doc:{row['document_id']}"
+        if node_id not in documents:
+            documents[node_id] = {
+                "id": node_id, "type": "DOCUMENT", "name": row["filename"],
+                "description": "", "degree": 0, "mentions": 0,
+            }
+        documents[node_id]["mentions"] += row["weight"]
+        edges.append(
+            {
+                "src": node_id, "dst": row["entity"], "rel": "MENTIONED_IN",
+                "description": "", "weight": row["weight"], "kind": "mention",
+            }
+        )
+
+    nodes.extend(documents.values())
     return {"nodes": nodes, "edges": edges}

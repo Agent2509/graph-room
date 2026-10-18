@@ -29,6 +29,8 @@ export type GraphNode = {
   type: string;
   description: string;
   degree: number;
+  name?: string;
+  mentions?: number;
 };
 
 export type GraphLink = {
@@ -37,6 +39,7 @@ export type GraphLink = {
   rel: string;
   description: string;
   weight: number;
+  kind?: "relation" | "mention";
 };
 
 export type GraphPayload = { nodes: GraphNode[]; edges: GraphLink[] };

@@ -16,7 +16,8 @@ export default function GraphPage() {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphLink[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [minDegree, setMinDegree] = useState(true);
+  const [minDegree, setMinDegree] = useState(false);
+  const [showMentions, setShowMentions] = useState(true);
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [error, setError] = useState("");
 
@@ -41,14 +42,29 @@ export default function GraphPage() {
     return () => window.removeEventListener(CHANGED, handler);
   }, [load]);
 
-  const visibleNodes = useMemo(
-    () => (minDegree && links.length > 0 ? nodes.filter((node) => node.degree > 0) : nodes),
-    [minDegree, links.length, nodes],
-  );
+  const visibleNodes = useMemo(() => {
+    const base = showMentions ? nodes : nodes.filter((node) => node.type !== "DOCUMENT");
+    if (!minDegree || links.length === 0) return base;
+
+    const entities = base.filter((node) => node.type !== "DOCUMENT" && node.degree > 0);
+    const entityIds = new Set(entities.map((node) => node.id));
+    const documents = base.filter(
+      (node) =>
+        node.type === "DOCUMENT" &&
+        links.some((link) => link.src === node.id && entityIds.has(link.dst)),
+    );
+    return [...entities, ...documents];
+  }, [links, minDegree, nodes, showMentions]);
+
   const visibleLinks = useMemo(() => {
     const keep = new Set(visibleNodes.map((node) => node.id));
-    return links.filter((link) => keep.has(link.src) && keep.has(link.dst));
-  }, [links, visibleNodes]);
+    return links.filter(
+      (link) =>
+        keep.has(link.src) &&
+        keep.has(link.dst) &&
+        (showMentions || link.kind !== "mention"),
+    );
+  }, [links, showMentions, visibleNodes]);
 
   return (
     <div className="graph-wrap">
@@ -61,6 +77,14 @@ export default function GraphPage() {
               onChange={(event) => setMinDegree(event.target.checked)}
             />
             hide isolated entities
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={showMentions}
+              onChange={(event) => setShowMentions(event.target.checked)}
+            />
+            document links
           </label>
           <span>{visibleNodes.length} shown</span>
         </div>
@@ -78,10 +102,21 @@ export default function GraphPage() {
         {error && <p className="error">{error}</p>}
         {selected ? (
           <>
-            <h3>{selected.id}</h3>
+            <h3>{selected.name ?? selected.id}</h3>
             <p className="kind">{selected.type.toLowerCase()}</p>
-            <p>{selected.description || "No description recorded."}</p>
-            <p className="doc-meta">{selected.degree} connections</p>
+            {selected.type === "DOCUMENT" ? (
+              <p>
+                {selected.mentions ?? 0} entity mentions. Every line from this document to
+                an entity is a structural link, not an extracted relation.
+              </p>
+            ) : (
+              <p>{selected.description || "No description recorded."}</p>
+            )}
+            <p className="doc-meta">
+              {selected.type === "DOCUMENT"
+                ? `${selected.mentions ?? 0} mentions`
+                : `${selected.degree} relations`}
+            </p>
           </>
         ) : (
           <>
@@ -91,7 +126,7 @@ export default function GraphPage() {
               says about it.
             </p>
             <div className="legend">
-              {["PERSON", "ORGANIZATION", "TECHNOLOGY", "CONCEPT", "LOCATION"].map((type) => (
+              {["PERSON", "ORGANIZATION", "TECHNOLOGY", "CONCEPT", "LOCATION", "DOCUMENT"].map((type) => (
                 <span key={type}>
                   <i
                     style={{
@@ -102,6 +137,7 @@ export default function GraphPage() {
                           TECHNOLOGY: "#7fa6c9",
                           CONCEPT: "#b9b3a3",
                           LOCATION: "#c4693f",
+                          DOCUMENT: "#5f7f8c",
                         }[type] ?? "#b9b3a3",
                     }}
                   />
