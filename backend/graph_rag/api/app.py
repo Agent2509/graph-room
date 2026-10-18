@@ -31,6 +31,10 @@ def create_app(config: Settings | None = None, llm=None, embed=None) -> FastAPI:
     )
     app.state.settings = config
     app.state.db = Database(config.db_path)
+    app.state.db.conn().execute(
+        "UPDATE jobs SET status='failed', error=? WHERE status IN ('queued','running')",
+        ("Interrupted by a server restart. Upload the document again.",),
+    )
     # None means: every request must supply its own Groq key (X-LLM-Key header).
     app.state.llm = llm
     app.state.llm_cache = {}

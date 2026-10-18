@@ -219,3 +219,23 @@ def test_jobs_are_listed(client):
     assert _wait(client, created["job_id"])["status"] == "done"
     jobs = client.get("/api/jobs").json()
     assert any(job["id"] == created["job_id"] for job in jobs)
+
+
+def test_interrupted_jobs_are_failed_on_startup(tmp_path, embed):
+    from graph_rag.db import Database
+
+    data_dir = tmp_path / "restart"
+    seeded = Database(data_dir / "app.db")
+    seeded.conn().execute(
+        "INSERT INTO jobs(id, kind, status) VALUES ('j1', 'index', 'queued')"
+    )
+    seeded.close()
+
+    app = create_app(
+        Settings(data_dir=data_dir, static_dir=tmp_path / "s", seed_demo=False),
+        llm=MockLLM(),
+        embed=embed,
+    )
+    job = app.state.db.conn().execute("SELECT status, error FROM jobs").fetchone()
+    assert job["status"] == "failed"
+    assert "restart" in job["error"].lower()

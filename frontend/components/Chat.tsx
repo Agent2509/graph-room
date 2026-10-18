@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { askStream, getLLMKey, getStats, listDocuments } from "@/lib/api";
 import { toHtml } from "@/lib/markdown";
@@ -47,11 +47,14 @@ export default function Chat() {
     };
   }, []);
 
-  useEffect(() => {
+  const loadExamples = useCallback(() => {
     getStats()
       .then((stats) => {
         const names = stats.top_entities.slice(0, 2).map((entity) => entity.name);
-        if (!names.length) return setExamples(fallbackExamples);
+        if (!names.length) {
+          setExamples(fallbackExamples);
+          return;
+        }
         setExamples([
           `Tell me about ${names[0]}`,
           names[1] ? `How is ${names[0]} connected to ${names[1]}?` : `What is ${names[0]}?`,
@@ -60,6 +63,12 @@ export default function Chat() {
       })
       .catch(() => setExamples(fallbackExamples));
   }, []);
+
+  useEffect(() => {
+    loadExamples();
+    window.addEventListener(CHANGED, loadExamples);
+    return () => window.removeEventListener(CHANGED, loadExamples);
+  }, [loadExamples]);
 
   useEffect(() => {
     const load = () =>
