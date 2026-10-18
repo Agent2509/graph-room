@@ -23,6 +23,12 @@ class Settings:
     extraction_model: str = field(
         default_factory=lambda: os.getenv("EXTRACTION_MODEL", "openai/gpt-oss-20b")
     )
+    extraction_mode: str = field(
+        default_factory=lambda: os.getenv("EXTRACTION_MODE", "fast").strip().lower()
+    )
+    relation_threshold: float = field(
+        default_factory=lambda: float(os.getenv("RELATION_THRESHOLD", "0.62"))
+    )
     seed_demo: bool = field(
         default_factory=lambda: os.getenv("SEED_DEMO", "1").lower() not in {"0", "false", "no"}
     )

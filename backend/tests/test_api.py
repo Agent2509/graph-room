@@ -102,17 +102,38 @@ def test_failed_indexing_can_be_retried(client):
     assert _wait(client, retry["job_id"])["status"] == "done"
 
 
-def test_api_requires_the_callers_own_groq_key(tmp_path, embed):
+def test_fast_mode_ingests_without_a_key_but_queries_do_not(tmp_path, embed):
     app = create_app(
         Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", seed_demo=False), embed=embed
-    )  # no injected llm, no server key
+    )  # no injected llm, no server key, fast extraction (default)
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/documents", data={"text": "Alice Zhao founded NexusLabs.", "filename": "n"}
+        )
+        assert created.status_code == 200
+        assert created.json()["job_id"]
+        assert _wait(client, created.json()["job_id"])["status"] == "done"
+
+        # answering still needs the visitor's key
+        response = client.post("/api/query", json={"question": "who?"})
+        assert response.status_code == 400
+        assert "Groq API key" in response.json()["detail"]
+
+
+def test_llm_extraction_mode_requires_a_key(tmp_path, embed):
+    app = create_app(
+        Settings(
+            data_dir=tmp_path / "d2", static_dir=tmp_path / "s2",
+            seed_demo=False, extraction_mode="llm",
+        ),
+        embed=embed,
+    )
     with TestClient(app) as client:
         response = client.post(
             "/api/documents", data={"text": "Alice founded NexusLabs.", "filename": "n"}
         )
         assert response.status_code == 400
         assert "Groq API key" in response.json()["detail"]
-        assert client.post("/api/query", json={"question": "who?"}).status_code == 400
 
 
 def test_delete_document_while_a_job_is_running(client):

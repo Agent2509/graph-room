@@ -15,7 +15,7 @@ from graph_rag.db import Database
 from graph_rag.llm import BaseLLM
 from graph_rag.models import TextChunk
 
-from . import communities, extractor, graph, resolver, vectors
+from . import communities, extractor, fast_extract, graph, resolver, vectors
 
 Progress = Callable[[str, int, int], None]
 
@@ -58,6 +58,8 @@ def index_document(
     batch_size: int = 3,
     max_llm_summaries: int = 12,
     progress: Progress | None = None,
+    mode: str = "llm",
+    relation_threshold: float = 0.62,
 ) -> str:
     def report(phase: str, done: int, total: int) -> None:
         if progress:
@@ -82,10 +84,17 @@ def index_document(
         return "done"
 
     report("extracting", 0, max(1, len(chunks) // batch_size))
-    raw_entities, raw_edges = extractor.extract(
-        db, llm, model, chunks, batch_size,
-        progress=lambda done, total: report("extracting", done, total),
-    )
+    if mode == "fast":
+        # Deterministic, no LLM, no cache: the work is milliseconds.
+        raw_entities, raw_edges = fast_extract.extract(
+            chunks, embed, threshold=relation_threshold
+        )
+        report("extracting", 1, 1)
+    else:
+        raw_entities, raw_edges = extractor.extract(
+            db, llm, model, chunks, batch_size,
+            progress=lambda done, total: report("extracting", done, total),
+        )
     if not raw_entities:
         raise RuntimeError("Extraction produced no entities; check the LLM response")
 

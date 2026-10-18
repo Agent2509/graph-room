@@ -27,13 +27,14 @@ def load_golden() -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
-def build_index(db: Database, llm, embed, model: str) -> None:
+def build_index(db: Database, llm, embed, model: str, extractor: str = "recorded") -> None:
     for path in sorted((ROOT / "sample_data").glob("*.txt")):
         document_id, _ = indexer.add_document(
             db, path.name, path.read_text(encoding="utf-8"), 800, 120
         )
         indexer.index_document(
-            db, llm, embed, model, document_id, batch_size=3, max_llm_summaries=0
+            db, llm, embed, model, document_id, batch_size=3, max_llm_summaries=0,
+            mode="fast" if extractor == "fast" else "llm",
         )
 
 
@@ -98,6 +99,10 @@ def print_table(report: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="use Groq instead of the recording")
+    parser.add_argument(
+        "--extractor", choices=["recorded", "fast"], default="recorded",
+        help="recorded: replayed LLM extraction; fast: rule-based, no LLM",
+    )
     parser.add_argument("--out", default=str(Path(__file__).with_name("report.json")))
     arguments = parser.parse_args()
 
@@ -115,7 +120,7 @@ def main() -> int:
             recorded = RecordedLLM(ROOT / "fixtures" / "llm_responses.json")
             llm, model = recorded, recorded.model
 
-        build_index(db, llm, embed, model)
+        build_index(db, llm, embed, model, arguments.extractor)
         report = score(db, llm, embed)
         if not arguments.live:
             report["recording_misses"] = getattr(llm, "misses", 0)

@@ -72,11 +72,13 @@ def get_answer_llm(
 
 def get_extraction_llm(
     request: Request, x_llm_key: str | None = Header(default=None, alias="X-LLM-Key")
-) -> BaseLLM:
-    """The cheap model, used for graph extraction and community summaries."""
+) -> BaseLLM | None:
+    """The cheap model for graph work; None in fast mode (no key needed to ingest)."""
     injected = request.app.state.llm
     if injected is not None:
         return injected
+    if request.app.state.settings.extraction_mode == "fast":
+        return None
     return _client(
         request, _require_key(request, x_llm_key),
         request.app.state.settings.extraction_model,

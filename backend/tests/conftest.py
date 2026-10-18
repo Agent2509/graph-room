@@ -28,9 +28,49 @@ class FakeEmbedder:
         return self([text])[0]
 
 
+SEMANTIC_KEYWORDS = {
+    "FOUNDED": ("founded", "co-founded", "established", "started", "founding"),
+    "ACQUIRED": ("acquired", "bought", "purchased", "acquisition"),
+    "DEVELOPED": ("developed", "built", "created", "engineered", "designed"),
+    "PARTNERS_WITH": ("partnership", "partnered", "collaborated", "collaboration", "teamed", "agreement"),
+    "PROVIDES": ("provides", "supplies", "offers", "hosts"),
+    "BASED_IN": ("headquartered", "based in", "located in", "operates from"),
+    "WORKS_FOR": ("appointed", "promoted", "works for", "joined", "employed"),
+    "GRANTED": ("granted", "approved", "authorized", "priority review"),
+    "USES": ("uses", "deployed", "adopted", "implemented"),
+    "PART_OF": ("subsidiary", "part of", "division"),
+}
+
+
+class SemanticEmbedder:
+    """Keyword → one-hot vectors. Tests the pipeline logic, not model quality."""
+
+    model_name = "semantic-stub"
+    labels = list(SEMANTIC_KEYWORDS)
+
+    def __call__(self, texts: list[str]) -> list[list[float]]:
+        vectors = []
+        for text in texts:
+            lowered = text.lower()
+            vector = np.zeros(384, dtype=np.float32)
+            for index, (_, words) in enumerate(SEMANTIC_KEYWORDS.items()):
+                if any(word in lowered for word in words):
+                    vector[index] = 1.0
+            vectors.append(vector.tolist())
+        return vectors
+
+    def one(self, text: str) -> list[float]:
+        return self([text])[0]
+
+
 @pytest.fixture
 def embed() -> FakeEmbedder:
     return FakeEmbedder()
+
+
+@pytest.fixture
+def semantic_embed() -> SemanticEmbedder:
+    return SemanticEmbedder()
 
 
 @pytest.fixture

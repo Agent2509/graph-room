@@ -33,6 +33,8 @@ def _index_work(request: Request, document_id: str, llm):
             batch_size=config.extraction_batch_size,
             max_llm_summaries=config.max_llm_summaries,
             progress=progress,
+            mode=config.extraction_mode,
+            relation_threshold=config.relation_threshold,
         )
 
     return work
@@ -96,7 +98,8 @@ async def create_document(
         # Content is stored but extraction never finished (failed job): retry it.
 
     job_id = state.runner.submit("index", _index_work(request, document_id, llm))
-    state.runner.submit("communities", _summarize_work(request, llm))
+    if llm is not None:
+        state.runner.submit("communities", _summarize_work(request, llm))
     return {"document_id": document_id, "chunks": chunks, "job_id": job_id,
             "duplicate": False}
 
@@ -129,5 +132,7 @@ async def delete_document(request: Request, document_id: str, llm=Depends(get_ex
     # memberships now (heuristic summaries) and re-summarize in the background.
     await asyncio.to_thread(indexer.reindex_communities, state.db, None, state.embed)
 
+    if llm is None:
+        return {**removed, "job_id": None}
     job_id = state.runner.submit("communities", _summarize_work(request, llm))
     return {**removed, "job_id": job_id}

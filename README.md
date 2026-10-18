@@ -91,10 +91,24 @@ Set `API_TOKEN` to also require `Authorization: Bearer <token>`.
 Document ids are content hashes, so re-uploading the same file is a no-op and chunk ids
 (`doc#0001`) cannot collide across documents.
 
-**Models.** Graph work (extraction, community summaries) uses `EXTRACTION_MODEL`
-(default `openai/gpt-oss-20b`), because it reads every chunk. Answers use
-`GROQ_MODEL` (default `openai/gpt-oss-120b`). Groq limits apply per model, so the
-good model keeps its budget for questions.
+**Extraction modes.** `EXTRACTION_MODE=fast` (default) builds the graph with rules
+plus embedding-scored verb phrases: no key, no network, ~0.5 s per corpus. `llm` uses
+`EXTRACTION_MODEL` (default `openai/gpt-oss-20b`) when you want richer descriptions.
+
+Measured on the bundled corpus (`backend/evals/compare_extractors.py`):
+
+| | llm | fast |
+|---|---|---|
+| entities | 26 | 16 |
+| relations | 25 | 10 |
+| golden retrieval (10 questions) | 1.00 / 1.00 / 1.00 | 1.00 / 1.00 / 1.00 |
+
+The LLM finds more concepts (`computational immunology`, `solid tumors`); the fast
+extractor finds fewer, and the ones it emits are correct. Retrieval scores are equal
+because chunk retrieval is unchanged.
+
+**Models.** Answers use `GROQ_MODEL` (default `openai/gpt-oss-120b`). Groq limits
+apply per model, so the good model keeps its budget for questions.
 
 **Extract.** Chunks go to the LLM in batches of 3. Every item is validated on its own
 (`pydantic`): a relationship with `weight: "1.0 (high)"` is coerced, not a reason to lose
