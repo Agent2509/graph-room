@@ -1,11 +1,19 @@
 # Graph Room
 
+[![ci](https://github.com/Agent2509/GRAPH-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/Agent2509/GRAPH-RAG/actions/workflows/ci.yml)
+
 A knowledge-graph RAG system in a single SQLite file. Drop in documents, the pipeline
 extracts entities and relations with an LLM, clusters them with Louvain, and answers
 questions either from a bounded subgraph (local) or from community reports (global).
 Answers stream token by token and cite the entity, relation or chunk they came from.
 
 **Stack:** Python 3.12 · FastAPI · SQLite (FTS5 + sqlite-vec) · NetworkX · Groq · FastEmbed · Next.js (static export)
+
+![Answers with citations](docs/chat.png)
+
+| Workspace | Knowledge graph |
+|---|---|
+| ![Workspace](docs/workspace.png) | ![Graph](docs/graph.png) |
 
 ```
 browser ──► Next.js static files / SSE ──► FastAPI ──► one SQLite file
