@@ -14,7 +14,7 @@ jobs:
           python-version: "3.12"
       - uses: actions/cache@v4
         with:
-          path: ~/.cache/fastembed
+          path: /tmp/fastembed_cache
           key: fastembed-bge-small-en-v1.5
       - run: pip install -e backend
       - run: pip install pytest pytest-asyncio httpx ruff
