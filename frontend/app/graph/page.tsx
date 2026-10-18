@@ -21,6 +21,7 @@ export default function GraphPage() {
   const [showCooccur, setShowCooccur] = useState(true);
   const [colorBy, setColorBy] = useState<"type" | "community">("community");
   const [fitSignal, setFitSignal] = useState(0);
+  const [query, setQuery] = useState("");
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [error, setError] = useState("");
@@ -56,9 +57,16 @@ export default function GraphPage() {
   }, [links]);
 
   const visibleNodes = useMemo(() => {
+    const needle = query.trim().toLowerCase();
     const base = nodes
       .filter((node) => showMentions || node.type !== "DOCUMENT")
-      .filter((node) => !hiddenTypes.has(node.type));
+      .filter((node) => !hiddenTypes.has(node.type))
+      .filter(
+        (node) =>
+          !needle ||
+          (node.name ?? node.id).toLowerCase().includes(needle) ||
+          node.type.toLowerCase().includes(needle),
+      );
     if (!minDegree || links.length === 0) return base;
 
     const connected = base.filter(
@@ -71,7 +79,7 @@ export default function GraphPage() {
         links.some((link) => link.src === node.id && ids.has(link.dst)),
     );
     return [...connected, ...documents];
-  }, [degreeById, hiddenTypes, links, minDegree, nodes, showMentions]);
+  }, [degreeById, hiddenTypes, links, minDegree, nodes, query, showMentions]);
 
   const visibleLinks = useMemo(() => {
     const keep = new Set(visibleNodes.map((node) => node.id));
@@ -88,29 +96,36 @@ export default function GraphPage() {
     <div className="graph-wrap">
       <section className="canvas" aria-label="Knowledge graph">
         <div className="graph-toolbar">
-          <label>
+          <input
+            type="search"
+            value={query}
+            placeholder="filter…"
+            aria-label="Filter nodes by name"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <label title="Hide entities with no relations">
             <input
               type="checkbox"
               checked={minDegree}
               onChange={(event) => setMinDegree(event.target.checked)}
             />
-            hide isolated entities
+            isolated
           </label>
-          <label>
+          <label title="Show document → entity links">
             <input
               type="checkbox"
               checked={showMentions}
               onChange={(event) => setShowMentions(event.target.checked)}
             />
-            document links
+            documents
           </label>
-          <label>
+          <label title="Show entities that share a chunk">
             <input
               type="checkbox"
               checked={showCooccur}
               onChange={(event) => setShowCooccur(event.target.checked)}
             />
-            co-occurrence
+            links
           </label>
           <button
             type="button"
@@ -138,8 +153,12 @@ export default function GraphPage() {
         </div>
         {visibleNodes.length === 0 ? (
           <div className="empty" style={{ padding: "25vh 24px 0" }}>
-            <h1>The graph is empty.</h1>
-            <p>Add a document in the workspace. Entities and relations appear here once indexing finishes.</p>
+            <h1>{query ? `No entity matches “${query}”.` : "The graph is empty."}</h1>
+            <p>
+              {query
+                ? "Clear the filter, or check the spelling."
+                : "Add a document in the workspace. Entities and relations appear here once indexing finishes."}
+            </p>
           </div>
         ) : (
           <GraphView
@@ -179,6 +198,9 @@ export default function GraphPage() {
               Pick an entity to read its description. Hover a relation to see what the source text
               says about it.
             </p>
+            <p className="hint" style={{ marginTop: 14, marginBottom: 6 }}>
+              Click a type to hide it.
+            </p>
             <div className="legend">
               {["PERSON", "ORGANIZATION", "TECHNOLOGY", "CONCEPT", "LOCATION", "DOCUMENT"].map((type) => (
                 <button
@@ -216,15 +238,17 @@ export default function GraphPage() {
         )}
 
         {stats && stats.community_reports.length > 0 && (
-          <div style={{ marginTop: 26 }}>
-            <h2 className="panel-title">Communities</h2>
-            {stats.community_reports.slice(0, 6).map((community) => (
+          <details style={{ marginTop: 26 }}>
+            <summary className="panel-title" style={{ cursor: "pointer" }}>
+              Communities ({stats.community_reports.length})
+            </summary>
+            {stats.community_reports.map((community) => (
               <article key={community.id} className="community">
                 <h4>{community.title}</h4>
                 <p>{community.summary}</p>
               </article>
             ))}
-          </div>
+          </details>
         )}
       </aside>
     </div>

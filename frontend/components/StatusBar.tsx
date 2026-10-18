@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { getStats, getToken, setToken } from "@/lib/api";
+import { API, getStats, getToken, setToken } from "@/lib/api";
 import type { Stats } from "@/lib/types";
 
 export const CHANGED = "graphrag:changed";
@@ -10,11 +10,16 @@ export const CHANGED = "graphrag:changed";
 export default function StatusBar() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [token, setTokenValue] = useState("");
+  const [authRequired, setAuthRequired] = useState(false);
 
   const load = useCallback(() => {
     getStats()
       .then(setStats)
       .catch(() => setStats(null));
+    fetch(`${API}/api/health`)
+      .then((response) => response.json())
+      .then((body) => setAuthRequired(Boolean(body?.features?.auth_required)))
+      .catch(() => setAuthRequired(false));
   }, []);
 
   useEffect(() => {
@@ -32,29 +37,25 @@ export default function StatusBar() {
           <b>{stats?.entities ?? "–"}</b> entities
         </span>
         <span>
-          <b>{stats?.edges ?? "–"}</b> relations
-        </span>
-        <span>
-          <b>{stats?.cooccurrences ?? "–"}</b> co-occurrences
-        </span>
-        <span>
-          <b>{stats?.chunks ?? "–"}</b> chunks
+          <b>{stats?.documents ?? "–"}</b> documents
         </span>
       </div>
-      <label className="token">
-        token
-        <input
-          type="password"
-          value={token}
-          placeholder="not set"
-          aria-label="API token"
-          onChange={(event) => {
-            setTokenValue(event.target.value);
-            setToken(event.target.value);
-            load();
-          }}
-        />
-      </label>
+      {authRequired && (
+        <label className="token">
+          token
+          <input
+            type="password"
+            value={token}
+            placeholder="not set"
+            aria-label="API token"
+            onChange={(event) => {
+              setTokenValue(event.target.value);
+              setToken(event.target.value);
+              load();
+            }}
+          />
+        </label>
+      )}
     </div>
   );
 }

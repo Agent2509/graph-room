@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { askStream, getLLMKey, listDocuments } from "@/lib/api";
+import { askStream, getLLMKey, getStats, listDocuments } from "@/lib/api";
 import { toHtml } from "@/lib/markdown";
 import { CHANGED } from "./StatusBar";
 import { KEY_CHANGED } from "./KeyPanel";
@@ -16,10 +16,9 @@ type Turn = {
   failed?: boolean;
 };
 
-const EXAMPLES = [
-  "How is Alice Zhao connected to CureX?",
-  "What did NexusLabs acquire, and why?",
-  "What are the main themes across this corpus?",
+const fallbackExamples = [
+  "What is in this corpus?",
+  "What are the main themes?",
 ];
 
 export default function Chat() {
@@ -29,6 +28,7 @@ export default function Chat() {
   const [busy, setBusy] = useState(false);
   const [hasKey, setHasKey] = useState(false);
   const [documents, setDocuments] = useState<{ id: string; filename: string }[]>([]);
+  const [examples, setExamples] = useState<string[]>(fallbackExamples);
   const [documentId, setDocumentId] = useState("");
   const abort = useRef<AbortController | null>(null);
   const transcript = useRef<HTMLDivElement>(null);
@@ -45,6 +45,20 @@ export default function Chat() {
       window.removeEventListener(KEY_CHANGED, syncKey);
       abort.current?.abort();
     };
+  }, []);
+
+  useEffect(() => {
+    getStats()
+      .then((stats) => {
+        const names = stats.top_entities.slice(0, 2).map((entity) => entity.name);
+        if (!names.length) return setExamples(fallbackExamples);
+        setExamples([
+          `Tell me about ${names[0]}`,
+          names[1] ? `How is ${names[0]} connected to ${names[1]}?` : `What is ${names[0]}?`,
+          "What are the main themes?",
+        ]);
+      })
+      .catch(() => setExamples(fallbackExamples));
   }, []);
 
   useEffect(() => {
@@ -145,7 +159,7 @@ export default function Chat() {
               </p>
             )}
             <div className="examples">
-              {EXAMPLES.map((example) => (
+              {examples.map((example) => (
                 <button key={example} className="example" onClick={() => send(example)}>
                   {example}
                 </button>
@@ -202,10 +216,15 @@ export default function Chat() {
             </option>
           ))}
         </select>
-        <select value={mode} onChange={(event) => setMode(event.target.value)} aria-label="Search mode">
-          <option value="auto">auto</option>
-          <option value="local">local</option>
-          <option value="global">global</option>
+        <select
+          value={mode}
+          onChange={(event) => setMode(event.target.value)}
+          aria-label="Search mode"
+          title="Auto picks a strategy; Specific is entity-focused; Overview is corpus themes"
+        >
+          <option value="auto">Auto</option>
+          <option value="local">Specific</option>
+          <option value="global">Overview</option>
         </select>
         <textarea
           value={draft}

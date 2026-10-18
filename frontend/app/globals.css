@@ -554,6 +554,21 @@ select {
   padding: 1px 4px;
 }
 
+.graph-toolbar input[type="search"] {
+  width: 120px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: inherit;
+}
+
+.graph-toolbar .btn-quiet {
+  padding: 0 4px;
+  font-size: 12px;
+}
+
 .graph-toolbar label {
   display: flex;
   align-items: center;

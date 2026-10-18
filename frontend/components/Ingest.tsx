@@ -2,21 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { addFile, addText, getLLMKey, listDocuments, removeDocument } from "@/lib/api";
+import { addFile, addText, listDocuments, removeDocument } from "@/lib/api";
 import type { DocumentRow, Job } from "@/lib/types";
 
 import { JOBS_EVENT, KICK } from "./JobWatcher";
-import { KEY_CHANGED } from "./KeyPanel";
 import { CHANGED } from "./StatusBar";
 
 export default function Ingest() {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [text, setText] = useState("");
-  const [name, setName] = useState("pasted-notes");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [hasKey, setHasKey] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -27,17 +24,21 @@ export default function Ingest() {
   }, []);
 
   useEffect(() => {
+    if (!jobs.length) return;
+    const active = jobs.some((job) => job.status === "queued" || job.status === "running");
+    if (active) return;
+    const timer = window.setTimeout(() => setJobs([]), 8000);
+    return () => window.clearTimeout(timer);
+  }, [jobs]);
+
+  useEffect(() => {
     refresh();
-    const syncKey = () => setHasKey(Boolean(getLLMKey()));
     const onJobs = (event: Event) => {
       setJobs((event as CustomEvent).detail as Job[]);
     };
-    syncKey();
-    window.addEventListener(KEY_CHANGED, syncKey);
     window.addEventListener(JOBS_EVENT, onJobs);
     window.addEventListener(CHANGED, refresh);
     return () => {
-      window.removeEventListener(KEY_CHANGED, syncKey);
       window.removeEventListener(JOBS_EVENT, onJobs);
       window.removeEventListener(CHANGED, refresh);
     };
@@ -51,7 +52,7 @@ export default function Ingest() {
       return;
     }
     try {
-      const result = await addText(text, name || "pasted-notes");
+      const result = await addText(text, `pasted ${new Date().toLocaleString()}`);
       if (result.duplicate) {
         setNotice("That text is already indexed.");
       } else {
@@ -80,8 +81,9 @@ export default function Ingest() {
     refresh();
   };
 
-  const drop = async (id: string) => {
+  const drop = async (id: string, filename: string) => {
     setError("");
+    if (!window.confirm(`Delete ${filename}? Its entities and links go with it.`)) return;
     try {
       const result = await removeDocument(id);
       if (result.job_id) window.dispatchEvent(new Event(KICK));
@@ -94,12 +96,16 @@ export default function Ingest() {
     }
   };
 
+  // Active work plus the last finished job; a long history is noise.
+  const running = jobs.filter((job) => job.status === "queued" || job.status === "running");
+  const lastDone = jobs.find((job) => job.status === "done" || job.status === "failed");
+  const shownJobs = running.length ? running : lastDone ? [lastDone] : [];
+
   return (
     <>
       <section className="stack" aria-labelledby="add-title">
         <h2 id="add-title">Add a document</h2>
         <p className="hint">Text, markdown or PDF. Indexing extracts entities, relations and communities.</p>
-        {!hasKey && <p className="notice">Add your Groq key above to ingest or ask.</p>}
 
         <label className="file-drop">
           <span>Choose a file</span>
@@ -115,12 +121,6 @@ export default function Ingest() {
           />
         </label>
 
-        <input
-          className="field"
-          value={name}
-          aria-label="Document name"
-          onChange={(event) => setName(event.target.value)}
-        />
         <textarea
           className="field"
           rows={5}
@@ -128,7 +128,7 @@ export default function Ingest() {
           value={text}
           onChange={(event) => setText(event.target.value)}
         />
-        <button className="btn" onClick={submitText} disabled={!text.trim() || !hasKey}>
+        <button className="btn" onClick={submitText} disabled={!text.trim()}>
           Add to graph
         </button>
 
@@ -140,11 +140,11 @@ export default function Ingest() {
         )}
       </section>
 
-      {jobs.length > 0 && (
+      {shownJobs.length > 0 && (
         <section aria-labelledby="jobs-title">
           <h2 id="jobs-title">Indexing</h2>
           <ul className="job-list">
-            {jobs.map((job) => (
+            {shownJobs.map((job) => (
               <li key={job.id} className="job" data-status={job.status}>
                 <div className="job-head">
                   <span>
@@ -174,11 +174,10 @@ export default function Ingest() {
                 <span className="doc-name" title={document.filename}>
                   {document.filename}
                 </span>
-                <span className="doc-meta">{document.chunks} ch</span>
                 <button
                   className="btn btn-quiet"
                   aria-label={`Delete ${document.filename}`}
-                  onClick={() => drop(document.id)}
+                  onClick={() => drop(document.id, document.filename)}
                 >
                   ✕
                 </button>
