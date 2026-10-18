@@ -1,0 +1,86 @@
+"""HTTP surface: auth, size cap, honest status, streaming."""
+
+import time
+
+from fastapi.testclient import TestClient
+
+from graph_rag.api.app import create_app
+from graph_rag.config import Settings
+from graph_rag.llm.mock import MockLLM
+
+
+def _wait(client, job_id, timeout=10.0):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        job = client.get(f"/api/jobs/{job_id}").json()
+        if job["status"] in {"done", "failed"}:
+            return job
+        time.sleep(0.05)
+    raise AssertionError("job did not finish")
+
+
+def test_health_needs_no_token_and_reports_features(client):
+    body = client.get("/api/health").json()
+    assert body["status"] == "ok"
+    assert body["features"]["vectors"].startswith("sqlite-vec")
+
+
+def test_paste_index_and_query(client):
+    created = client.post(
+        "/api/documents",
+        data={"text": "Alice Zhao founded NexusLabs in Boston.", "filename": "note"},
+    ).json()
+    assert created["chunks"] == 1
+    assert _wait(client, created["job_id"])["status"] == "done"
+
+    duplicate = client.post(
+        "/api/documents",
+        data={"text": "Alice Zhao founded NexusLabs in Boston.", "filename": "note"},
+    ).json()
+    assert duplicate["duplicate"] is True and duplicate["job_id"] is None
+
+    graph = client.get("/api/graph").json()
+    assert graph["nodes"]
+
+    result = client.post("/api/query", json={"question": "Who founded NexusLabs?"}).json()
+    assert result["mode"] in {"local", "global"}
+    assert result["answer"]
+
+    with client.stream(
+        "POST", "/api/query?stream=true", json={"question": "Who founded NexusLabs?"}
+    ) as response:
+        body = "".join(response.iter_text())
+    assert "event: meta" in body and "event: done" in body
+
+
+def test_upload_cap_returns_413(tmp_path, embed):
+    app = create_app(
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", max_upload_bytes=10),
+        llm=MockLLM(),
+        embed=embed,
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/documents", files={"file": ("big.txt", b"x" * 64, "text/plain")}
+        )
+    assert response.status_code == 413
+
+
+def test_token_auth(tmp_path, embed):
+    app = create_app(
+        Settings(data_dir=tmp_path / "d", static_dir=tmp_path / "s", api_token="s3cret"),
+        llm=MockLLM(),
+        embed=embed,
+    )
+    with TestClient(app) as client:
+        assert client.get("/api/stats").status_code == 401
+        assert client.get("/api/stats", headers={"Authorization": "Bearer wrong"}).status_code == 401
+        assert client.get(
+            "/api/stats", headers={"Authorization": "Bearer s3cret"}
+        ).status_code == 200
+        assert client.get("/api/health").status_code == 200
+
+
+def test_unknown_document_is_404(client):
+    assert client.delete("/api/documents/nope").status_code == 404
+    assert client.get("/api/jobs/nope").status_code == 404

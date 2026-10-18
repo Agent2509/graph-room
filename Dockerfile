@@ -1,33 +1,29 @@
-# Multiplatform Dockerfile for Graph RAG
-FROM python:3.12-slim
+# Build the static frontend, then ship it inside the API image.
+FROM node:22-slim AS web
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
 
-# Prevent Python from writing pyc files and buffer stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
+FROM python:3.12-slim AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    STATIC_DIR=/app/static \
+    DATA_DIR=/app/data
 WORKDIR /app
 
-# Install system dependencies needed for compiling or native extensions
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+COPY backend/pyproject.toml ./
+COPY backend/graph_rag ./graph_rag
+RUN pip install --no-cache-dir .
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Pre-download the FastEmbed ONNX model during image build so runtime is instant
+# Bake the embedding model so the container starts without a download.
 RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
 
-# Copy application source code
-COPY . .
+COPY --from=web /web/out ./static
 
-# Expose default Streamlit port
-EXPOSE 8501
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
 
-# Healthcheck
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
-
-# Default entrypoint runs Streamlit Studio
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["uvicorn", "graph_rag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

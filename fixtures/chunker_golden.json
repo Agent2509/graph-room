@@ -1,0 +1,102 @@
+{
+  "settings": [
+    [
+      800,
+      120
+    ],
+    [
+      300,
+      50
+    ]
+  ],
+  "docs": {
+    "curex_trials.txt": {
+      "800_120": [
+        {
+          "idx": 0,
+          "text": "Following the acquisition of DeepBio, Dr. Alice Zhao promoted Dr. Marcus Smith to Chief Science Officer of NexusLabs. \n\nIn mid-2024, the European Medicines Agency (EMA) granted priority review status to CureX after early Phase I trials demonstrated exceptional safety and tumor regression rates in oncology patients. ApexCloud announced a dedicated medical cloud partition to securely host and process the genomic sequencing and clinical trial telemetry for CureX, complying with both HIPAA and GDPR standards. Dr. Alice Zhao announced that NexusLabs and ApexCloud would jointly open-source parts of the CortexGraph medical ontology to encourage global oncology research.",
+          "tokens": 96
+        }
+      ],
+      "300_50": [
+        {
+          "idx": 0,
+          "text": "Following the acquisition of DeepBio, Dr. Alice Zhao promoted Dr. Marcus Smith to Chief Science Officer of NexusLabs.",
+          "tokens": 18
+        },
+        {
+          "idx": 1,
+          "text": "In mid-2024, the European Medicines Agency (EMA) granted priority review status to CureX after early Phase I trials demonstrated exceptional safety and tumor regression rates in oncology patients.",
+          "tokens": 28
+        },
+        {
+          "idx": 2,
+          "text": "ApexCloud announced a dedicated medical cloud partition to securely host and process the genomic sequencing and clinical trial telemetry for CureX, complying with both HIPAA and GDPR standards.\n\nDr.",
+          "tokens": 29
+        },
+        {
+          "idx": 3,
+          "text": "Dr.\n\nAlice Zhao announced that NexusLabs and ApexCloud would jointly open-source parts of the CortexGraph medical ontology to encourage global oncology research.",
+          "tokens": 22
+        }
+      ]
+    },
+    "deepbio.txt": {
+      "800_120": [
+        {
+          "idx": 0,
+          "text": "DeepBio is a biotechnology startup based in Zurich, founded by molecular biologist Dr. Marcus Smith in 2019. DeepBio specializes in computational immunology and automated protein design.\n\nIn early 2023, Dr. Marcus Smith and his research team at DeepBio engineered CureX, a synthetic peptide targeting aggressive solid tumors. Recognizing the massive synergy between artificial intelligence and biological research, NexusLabs acquired DeepBio in November 2023 for $320 million. Following the acquisition, NexusLabs deployed CortexGraph to simulate protein-protein docking interactions for CureX, accelerating its preclinical phase by over eighteen months.",
+          "tokens": 87
+        }
+      ],
+      "300_50": [
+        {
+          "idx": 0,
+          "text": "DeepBio is a biotechnology startup based in Zurich, founded by molecular biologist Dr. Marcus Smith in 2019. DeepBio specializes in computational immunology and automated protein design.\n\nIn early 2023, Dr.",
+          "tokens": 30
+        },
+        {
+          "idx": 1,
+          "text": "In early 2023, Dr.\n\nMarcus Smith and his research team at DeepBio engineered CureX, a synthetic peptide targeting aggressive solid tumors.\n\nRecognizing the massive synergy between artificial intelligence and biological research, NexusLabs acquired DeepBio in November 2023 for $320 million.",
+          "tokens": 40
+        },
+        {
+          "idx": 2,
+          "text": "Following the acquisition, NexusLabs deployed CortexGraph to simulate protein-protein docking interactions for CureX, accelerating its preclinical phase by over eighteen months.",
+          "tokens": 21
+        }
+      ]
+    },
+    "nexuslabs.txt": {
+      "800_120": [
+        {
+          "idx": 0,
+          "text": "In 2021, Dr. Alice Zhao, a former machine learning professor at MIT, founded NexusLabs in Boston. NexusLabs is an artificial intelligence research organization dedicated to building neuromorphic graph neural networks.\n\nNexusLabs developed CortexGraph, an open-source graph-based reasoning framework designed to connect multi-modal unstructured data into queryable knowledge topologies. In late 2022, NexusLabs entered into a multi-year strategic partnership with ApexCloud, a premier decentralized cloud infrastructure provider. Under this agreement, ApexCloud provides NexusLabs with high-bandwidth H100 GPU clusters and distributed storage systems to train CortexGraph foundation models.",
+          "tokens": 86
+        }
+      ],
+      "300_50": [
+        {
+          "idx": 0,
+          "text": "In 2021, Dr. Alice Zhao, a former machine learning professor at MIT, founded NexusLabs in Boston. NexusLabs is an artificial intelligence research organization dedicated to building neuromorphic graph neural networks.",
+          "tokens": 30
+        },
+        {
+          "idx": 1,
+          "text": "NexusLabs developed CortexGraph, an open-source graph-based reasoning framework designed to connect multi-modal unstructured data into queryable knowledge topologies.",
+          "tokens": 18
+        },
+        {
+          "idx": 2,
+          "text": "In late 2022, NexusLabs entered into a multi-year strategic partnership with ApexCloud, a premier decentralized cloud infrastructure provider.",
+          "tokens": 18
+        },
+        {
+          "idx": 3,
+          "text": "Under this agreement, ApexCloud provides NexusLabs with high-bandwidth H100 GPU clusters and distributed storage systems to train CortexGraph foundation models.",
+          "tokens": 20
+        }
+      ]
+    }
+  }
+}

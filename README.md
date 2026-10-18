@@ -1,197 +1,165 @@
-# 🕸️ Graph RAG: 100% Free Multiplatform Knowledge Graph RAG
+# Graph Room
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Groq Powered](https://img.shields.io/badge/Groq-Free%20Tier-orange.svg)](https://groq.com/)
-[![Embeddings: FastEmbed](https://img.shields.io/badge/FastEmbed-ONNX%20CPU-green.svg)](https://github.com/qdrant/fastembed)
+A knowledge-graph RAG system in a single SQLite file. Drop in documents, the pipeline
+extracts entities and relations with an LLM, clusters them with Louvain, and answers
+questions either from a bounded subgraph (local) or from community reports (global).
+Answers stream token by token and cite the entity, relation or chunk they came from.
 
-A complete, production-grade **Graph RAG (Graph Retrieval-Augmented Generation)** framework built completely from scratch in Python. Designed for **100% free-of-cost, multiplatform deployment** across **Hugging Face Spaces**, **Streamlit Community Cloud**, **Docker**, and local environments.
-
----
-
-## 🚀 Key Highlights
-
-* **100% Free Inference**:
-  * **LLM**: Powered by **Groq Cloud Free Tier** (default `openai/gpt-oss-20b`, with automatic failover to `openai/gpt-oss-120b` and Llama models) with ultra-fast generation and high throughput.
-  * **Embeddings**: Powered by **FastEmbed** (`bge-small-en-v1.5`) running locally on CPU in milliseconds via ONNX Runtime — **0 API cost, 0 rate limits, minimal RAM (~100MB)**.
-* **Embedded Storage**:
-  * Graph Engine: Built on **NetworkX** with multi-relational attributes, $k$-hop ego-network traversals, and JSON persistence — **zero external database setup or hosting fees**.
-  * Vector Store: In-memory **NumPy cosine similarity** index with instant JSON serialization.
-* **Dual Search Modes**:
-  * **Local Search**: Answers targeted, entity-grounded questions by traversing multi-hop subgraphs, extracting connected triples, and pairing them with source text chunks.
-  * **Global Search**: Answers broad, corpus-wide questions by clustering the graph into **Louvain Communities** and synthesizing pre-compiled community analytical reports.
-* **Interactive Physics Visualization**:
-  * Embedded **PyVis / Vis.js** network graph with clickable nodes, color-coded community clusters, edge relationship inspection, and real-time subgraph highlighting.
-* **Multiplatform Deployment**:
-  * **Streamlit Web Studio**: Full-featured web app with chat interface, document uploader, and graph inspector.
-  * **FastAPI Backend**: Headless REST API with auto-generated OpenAPI / Swagger docs.
-  * **Dockerized**: 1-command startup with `docker compose up`.
-
----
-
-## 🏛️ System Architecture
+**Stack:** Python 3.12 · FastAPI · SQLite (FTS5 + sqlite-vec) · NetworkX · Groq · FastEmbed · Next.js (static export)
 
 ```
-                                 [ User / Query ]
-                                        │
-             ┌──────────────────────────┴──────────────────────────┐
-             ▼                                                     ▼
-      [ Local Search ]                                      [ Global Search ]
-(Entity Vector Search + Subgraph Traversal)           (Semantic Community Report Search)
-             │                                                     │
-             ▼                                                     ▼
- [ Subgraph Triples + Raw Chunks ]                       [ Community Summaries ]
-             └──────────────────────────┬──────────────────────────┘
-                                        ▼
-                             [ Groq Llama 3.3 LLM ]
-                                        │
-                                        ▼
-                   [ Grounded Answer with Graph Citations ]
+browser ──► Next.js static files / SSE ──► FastAPI ──► one SQLite file
+                                                       ├ documents + chunks
+                                                       ├ FTS5          (BM25)
+                                                       ├ sqlite-vec    (dense KNN)
+                                                       ├ entities/edges/mentions
+                                                       └ jobs + caches
+                                        Groq ──────────┘ (extraction, answers)
 ```
 
----
+## Measured, not guessed
 
-## ⚡ Quickstart
+Benchmarked on this machine before choosing storage (100k chunks, 384-dim):
 
-### 1. Installation
+| | |
+|---|---|
+| Dense KNN via sqlite-vec | **41 ms** per query |
+| Sparse BM25 via FTS5 | **0 ms** typical, 38 ms when the query matches nearly every chunk |
+| Same vectors in numpy BLAS | 4.7 ms, but 154 MB resident and needs its own sync |
+| SQLite file size for 100k chunks | 162 MB |
+| Delete a document (chunks + vectors + graph, one transaction) | 0.26 s for 2k rows |
+| Test suite | 40 tests, **< 1 s**, no API key |
+| Retrieval evals (10 golden questions, replayed LLM) | **mode 1.00 · entity recall 1.00 · chunk recall 1.00** |
 
-Clone the repository and install dependencies using `uv` (recommended) or standard Python `venv`:
+Why one file instead of a vector database: LanceDB's own docs say brute force is fine
+below ~100k vectors, and a second store means a document delete touching two databases
+with no transaction between them. The plan said LanceDB; the measurements said
+otherwise. The swap point is one module (`retrieval/vectors.py`).
+
+## Quickstart
 
 ```bash
-# Using uv (ultra-fast)
-uv venv .venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
+# 1. API (port 8000)
+uv venv .venv && uv pip install --python .venv/bin/python -e backend
+set -a; cp .env.example .env; set +a            # add GROQ_API_KEY, or leave it empty for mock mode
+cd backend && ../.venv/bin/uvicorn graph_rag.api.main:app --reload
 
-# Or using standard python
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# 2. Frontend, in a second shell (port 3000)
+cd frontend && npm install
+NEXT_PUBLIC_API_BASE=http://localhost:8000 npm run dev
 ```
 
-### 2. Configure Environment
+Without `GROQ_API_KEY` the API runs on a deterministic mock LLM: ingestion and retrieval
+work end to end, the prose is canned. `/api/health` reports which provider is live.
 
-Copy `.env.example` to `.env` and add your free Groq API key:
+### One container
 
 ```bash
-cp .env.example .env
+docker compose up --build      # http://localhost:8000
 ```
 
-Edit `.env`:
-```env
-GROQ_API_KEY=gsk_your_free_key_here
-```
-*(You can obtain a free Groq API key at [console.groq.com/keys](https://console.groq.com/keys)).*
+The image builds the Next.js export and serves it from FastAPI: one origin, no CORS, no
+Node runtime in production. `./data/app.db` is the whole state; back it up by copying it.
 
-> **Note**: You can also run in **Offline / Mock Mode** without an API key!
+## API
 
-### 3. Run Interactive Demo
+| Route | Purpose |
+|---|---|
+| `GET /api/health` | status, provider, vector backend (no token required) |
+| `POST /api/documents` | file (`multipart`) or `text`+`filename` form; returns `{document_id, chunks, job_id}` |
+| `GET /api/documents` | documents with chunk counts |
+| `DELETE /api/documents/{id}` | removes chunks, vectors, mentions; recomputes entities; refreshes communities |
+| `GET /api/jobs/{id}` | `queued → running → done/failed`, with phase and progress |
+| `POST /api/query` | `{question, mode}` → JSON answer + citations |
+| `POST /api/query?stream=true` | SSE: `event: meta`, `event: delta` …, `event: done` |
+| `GET /api/graph` | nodes + edges for the canvas (`community`, `min_degree`, `limit`) |
+| `GET /api/stats` | counts, density, top entities, community reports |
+
+Set `API_TOKEN` to require `Authorization: Bearer <token>` on everything except `/api/health`.
+
+## How it works
+
+**Ingest.** Text is chunked on paragraph → sentence → word boundaries with overlap.
+Document ids are content hashes, so re-uploading the same file is a no-op and chunk ids
+(`doc#0001`) cannot collide across documents.
+
+**Extract.** Chunks go to the LLM in batches of 3. Every item is validated on its own
+(`pydantic`): a relationship with `weight: "1.0 (high)"` is coerced, not a reason to lose
+the batch. Responses are cached by `sha256(model + chunk texts)`, so a failed job resumes
+where it stopped and switching models re-extracts instead of reusing stale triples.
+
+**Store.** Entities and edges keep the aggregate that reads need (description, total
+weight), but the truth is the per-chunk mention rows. Re-indexing is idempotent, and
+deleting a document is exactly reversible: drop its mentions, recompute the aggregates
+from what is left, drop what has no mentions.
+
+**Retrieve.** Local search seeds entities from vector KNN plus exact name matches, walks
+a bounded neighbourhood with a recursive CTE over an `adjacency` view, and fuses
+mention/BM25/vector chunk rankings with reciprocal rank fusion. Global search ranks
+community summaries and synthesizes across them. `auto` routes with keyword hints, then
+one LLM classification as a fallback.
+
+**Summarize.** Louvain communities are re-detected on every index run, but a summary is
+reused when the member set hash is unchanged. Slow work (LLM, embeddings) always happens
+before the write transaction opens — an embed under `BEGIN IMMEDIATE` once froze every
+other writer.
+
+## Tests and evals
 
 ```bash
-.venv/bin/python examples/demo.py
+cd backend && ../.venv/bin/python -m pytest -q     # 40 tests, offline
+../.venv/bin/python backend/evals/run.py           # retrieval evals, offline
 ```
 
-### 4. Launch Streamlit Web App
+Tests use a hash-based fake embedder, so they need no model download and no key. The
+evals are different: they run the **real** pipeline (real chunker, extraction, graph,
+embeddings) against an LLM response recording in `fixtures/llm_responses.json`. That
+recording is what makes quality measurable in CI with zero API calls.
+
+Evals score retrieval — which entities, chunks and mode came back — not the prose, so the
+score is deterministic. `pytest` fails if the recording no longer matches the current
+prompts (`tests/test_evals.py`).
+
+To re-record after changing the extraction prompt or the sample corpus:
 
 ```bash
-.venv/bin/streamlit run app.py
-```
-Open your browser at `http://localhost:8501`.
-
-### 5. Launch FastAPI REST Service
-
-```bash
-.venv/bin/uvicorn api:app --host 0.0.0.0 --port 8000 --reload
-```
-Interactive API docs are available at `http://localhost:8000/docs`.
-
----
-
-## 🐳 Docker Deployment
-
-Run both the Streamlit Studio and FastAPI backend with Docker Compose:
-
-```bash
-# Provide key or leave blank for offline mock mode
-export GROQ_API_KEY=gsk_...
-
-docker compose up --build
-```
-* **Web Studio**: `http://localhost:8501`
-* **REST API**: `http://localhost:8000`
-
----
-
-## ☁️ Free Cloud Deployment Guides
-
-### Deploy to Hugging Face Spaces (100% Free)
-1. Create a new Space on [huggingface.co/spaces](https://huggingface.co/spaces).
-2. Choose **Streamlit** as the SDK and **CPU Basic (Free 16 GB RAM)**.
-3. Push this repository's files to your HF Space.
-4. Under **Settings > Variables and secrets**, add your `GROQ_API_KEY`.
-5. Your interactive Graph RAG app is live on the internet for free!
-
-### Deploy to Streamlit Community Cloud (100% Free)
-1. Push this repository to GitHub.
-2. Sign in to [share.streamlit.io](https://share.streamlit.io).
-3. Click **New app**, select your repository, branch `main`, and main file `app.py`.
-4. Under **Advanced settings > Secrets**, add:
-   ```toml
-   GROQ_API_KEY = "gsk_..."
-   ```
-5. Click **Deploy**!
-
----
-
-## 📖 Python Library Usage
-
-```python
-from graph_rag import GraphRAG
-from graph_rag.llm import GroqLLM, FastEmbedEmbedding
-
-# Initialize engine
-rag = GraphRAG(
-    llm=GroqLLM(api_key="gsk_..."),
-    embedding_model=FastEmbedEmbedding(),
-    chunk_size=800,
-    chunk_overlap=120,
-)
-
-# 1. Ingest files or raw text
-rag.add_file("sample_data/nexuslabs.txt")
-rag.add_file("sample_data/deepbio.txt")
-rag.add_file("sample_data/curex_trials.txt")
-
-# 2. Build Knowledge Graph & vector index
-rag.build_index()
-
-# 3. Local Search (multi-hop entity traversal)
-res_local = rag.query("How is Alice Zhao connected to CureX?", mode="local")
-print(res_local.answer)
-
-# 4. Global Search (corpus community sensemaking)
-res_global = rag.query("What are the key themes and breakthroughs?", mode="global")
-print(res_global.answer)
-
-# 5. Persist and reload index
-rag.save("./saved_graph_index")
-
-new_rag = GraphRAG(...)
-new_rag.load("./saved_graph_index")
+set -a; . ./.env; set +a
+python backend/evals/record.py
 ```
 
----
+## Layout
 
-## 🧪 Testing
-
-Run the automated test suite:
-
-```bash
-.venv/bin/pytest tests/ -v
+```
+backend/graph_rag/
+  api/          FastAPI app, auth, routes
+  pipeline/     chunker, extractor, resolver, graph, communities, vectors
+  retrieval/    bm25, fusion, local, global, router, service
+  jobs/         asyncio runner with SQLite state
+  db.py         schema, WAL, migrations-by-creation
+backend/tests/  9 files, 40 tests
+backend/evals/  golden questions, recorder, runner
+frontend/       Next.js app: workspace + graph
+fixtures/       recorded LLM responses, frozen chunker output
 ```
 
----
+## Deliberate limits
 
-## 📜 License
+Each is marked with a `shortcut:` comment in the code.
 
-MIT License. Free for personal, academic, and commercial use.
+- **Brute-force vectors.** ~40 ms at 100k chunks, ~400 ms at 1M (1.6 GB). Swap
+  `retrieval/vectors.py` for LanceDB/HNSW past ~1M chunks.
+- **One indexing job at a time.** SQLite has a single writer; the runner holds a
+  semaphore. Move to a worker queue when one job is not enough.
+- **Graph traversal in SQL, community detection in memory.** NetworkX loads entities and
+  edges for Louvain. Fine to ~1M edges.
+- **No cross-encoder reranker.** BM25 + dense + RRF, because the v1 reranker failed
+  silently and the evals show no recall gap. The eval report is the trigger to add it.
+- **No hierarchical parent-child chunking.** Not in the eval delta; one chunker.
+- **Free-tier Groq limits** cap indexing speed. Batching and retries with the server's
+  `retry-after` hint make it visible instead of a hang.
+
+## Not verified here
+
+The Docker image was not built in this environment (`docker` is unavailable). The
+frontend was built (`next build`, static export) but not exercised in a browser by an
+automated test. Live Groq streaming was exercised once manually; CI uses the recording.

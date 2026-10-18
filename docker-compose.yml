@@ -1,27 +1,12 @@
-version: "3.8"
-
 services:
-  # Streamlit Interactive Web Studio
-  graphrag-web:
+  graph-rag:
     build: .
-    container_name: graphrag-web
-    ports:
-      - "8501:8501"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-    volumes:
-      - ./data:/app/data
-    restart: unless-stopped
-
-  # Headless FastAPI REST Service
-  graphrag-api:
-    build: .
-    container_name: graphrag-api
-    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
+      API_TOKEN: ${API_TOKEN:-}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

@@ -1,0 +1,10 @@
+{"question": "Who founded NexusLabs?", "mode": "local", "entities": ["Alice Zhao", "NexusLabs"], "terms": ["founded", "nexuslabs"]}
+{"question": "What did NexusLabs acquire and for how much?", "mode": "local", "entities": ["DeepBio", "NexusLabs"], "terms": ["320 million", "acquired"]}
+{"question": "What is CortexGraph?", "mode": "local", "entities": ["CortexGraph"], "terms": ["cortexgraph", "graph"]}
+{"question": "Which regulator granted priority review to CureX?", "mode": "local", "entities": ["CureX", "European Medicines Agency"], "terms": ["priority review", "ema"]}
+{"question": "Who is Marcus Smith?", "mode": "local", "entities": ["Marcus Smith", "DeepBio"], "terms": ["marcus smith", "deepbio"]}
+{"question": "What role does ApexCloud play?", "mode": "local", "entities": ["ApexCloud"], "terms": ["apexcloud", "cloud"]}
+{"question": "How is Alice Zhao connected to CureX?", "mode": "local", "entities": ["Alice Zhao", "CureX"], "terms": ["alice", "curex"]}
+{"question": "What are the main themes across these documents?", "mode": "global", "entities": [], "terms": []}
+{"question": "Summarize the key partnerships.", "mode": "global", "entities": [], "terms": []}
+{"question": "What are the key findings in oncology?", "mode": "global", "entities": [], "terms": []}

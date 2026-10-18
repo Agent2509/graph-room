@@ -1,0 +1,225 @@
+"""Graph persistence. Aggregates are always derived from mention rows, so writes
+are idempotent and a document delete is exactly revertible.
+"""
+
+import json
+import sqlite3
+
+from graph_rag.models import ExtractedEdge, ExtractedEntity
+from graph_rag.pipeline import vectors
+from graph_rag.pipeline.resolver import merge_descriptions
+
+
+def write_extraction(
+    conn: sqlite3.Connection,
+    entities: dict[str, ExtractedEntity],
+    edges: list[ExtractedEdge],
+) -> None:
+    for entity in entities.values():
+        row = conn.execute(
+            "SELECT type FROM entities WHERE name=?", (entity.name,)
+        ).fetchone()
+        if row is None:
+            conn.execute(
+                "INSERT INTO entities(name, type, description) VALUES (?, ?, '')",
+                (entity.name, entity.type),
+            )
+        elif row["type"] == "CONCEPT" and entity.type != "CONCEPT":
+            conn.execute("UPDATE entities SET type=? WHERE name=?", (entity.type, entity.name))
+
+        for chunk_id in set(entity.chunk_ids):
+            conn.execute(
+                "INSERT OR REPLACE INTO entity_mentions(name, chunk_id, description) "
+                "VALUES (?, ?, ?)",
+                (entity.name, chunk_id, entity.description[:600]),
+            )
+        _recompute_entity(conn, entity.name)
+
+    for edge in edges:
+        for endpoint in (edge.src, edge.dst):
+            conn.execute(
+                "INSERT OR IGNORE INTO entities(name, type) VALUES (?, 'CONCEPT')", (endpoint,)
+            )
+        conn.execute(
+            "INSERT OR IGNORE INTO edges(src, dst, rel) VALUES (?, ?, ?)",
+            (edge.src, edge.dst, edge.rel),
+        )
+        for chunk_id in set(edge.chunk_ids):
+            conn.execute(
+                "INSERT OR REPLACE INTO edge_mentions(src, dst, rel, chunk_id, description, weight) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (edge.src, edge.dst, edge.rel, chunk_id, edge.description[:400], edge.weight),
+            )
+        _recompute_edge(conn, edge.src, edge.dst, edge.rel)
+
+
+def delete_document(db, document_id: str) -> dict[str, int]:
+    conn = db.conn()
+    affected_entities = [
+        row["name"]
+        for row in conn.execute(
+            "SELECT DISTINCT name FROM entity_mentions "
+            "WHERE chunk_id IN (SELECT id FROM chunks WHERE document_id=?)",
+            (document_id,),
+        )
+    ]
+    affected_edges = [
+        (row["src"], row["dst"], row["rel"])
+        for row in conn.execute(
+            "SELECT DISTINCT src, dst, rel FROM edge_mentions "
+            "WHERE chunk_id IN (SELECT id FROM chunks WHERE document_id=?)",
+            (document_id,),
+        )
+    ]
+    chunk_ids = [
+        row["id"]
+        for row in conn.execute("SELECT id FROM chunks WHERE document_id=?", (document_id,))
+    ]
+
+    with db.tx() as tx:
+        tx.execute("DELETE FROM documents WHERE id=?", (document_id,))
+        for chunk_id in chunk_ids:
+            vectors.delete(tx, "chunk", chunk_id)
+        for name in affected_entities:
+            _recompute_entity(tx, name)
+            vectors.delete(tx, "entity", name)
+        for src, dst, rel in affected_edges:
+            _recompute_edge(tx, src, dst, rel)
+        tx.execute(
+            "DELETE FROM entities WHERE name NOT IN (SELECT name FROM entity_mentions)"
+        )
+        tx.execute(
+            "DELETE FROM edges WHERE NOT EXISTS ("
+            "SELECT 1 FROM edge_mentions m "
+            "WHERE m.src=edges.src AND m.dst=edges.dst AND m.rel=edges.rel)"
+        )
+
+    return {
+        "chunks_removed": len(chunk_ids),
+        "entities_affected": len(affected_entities),
+        "edges_affected": len(affected_edges),
+    }
+
+
+def _recompute_entity(conn: sqlite3.Connection, name: str) -> None:
+    rows = conn.execute(
+        "SELECT description FROM entity_mentions WHERE name=?", (name,)
+    ).fetchall()
+    if not rows:
+        return
+    description = ""
+    for row in rows:
+        description = merge_descriptions(description, row["description"])
+    conn.execute("UPDATE entities SET description=? WHERE name=?", (description, name))
+
+
+def _recompute_edge(conn: sqlite3.Connection, src: str, dst: str, rel: str) -> None:
+    rows = conn.execute(
+        "SELECT description, weight FROM edge_mentions WHERE src=? AND dst=? AND rel=?",
+        (src, dst, rel),
+    ).fetchall()
+    if not rows:
+        return
+    description = ""
+    total = 0.0
+    for row in rows:
+        description = merge_descriptions(description, row["description"], max_chars=400)
+        total += float(row["weight"])
+    conn.execute(
+        "UPDATE edges SET description=?, weight=? WHERE src=? AND dst=? AND rel=?",
+        (description, total, src, dst, rel),
+    )
+
+
+def subgraph(
+    conn: sqlite3.Connection, seeds: list[str], max_hops: int = 2, max_nodes: int = 40
+) -> tuple[list[dict], list[dict]]:
+    """Bounded neighbourhood via a recursive CTE over the adjacency view."""
+    if not seeds:
+        return [], []
+    rows = conn.execute(
+        """
+        WITH RECURSIVE walk(name, depth) AS (
+            SELECT value, 0 FROM json_each(?)
+            WHERE value IN (SELECT name FROM entities)
+            UNION
+            SELECT adjacency.v, walk.depth + 1
+            FROM adjacency JOIN walk ON adjacency.u = walk.name
+            WHERE walk.depth < ?
+        )
+        SELECT name FROM walk LIMIT ?
+        """,
+        (json.dumps(seeds), max_hops, max_nodes),
+    ).fetchall()
+    names = [row["name"] for row in rows]
+    if not names:
+        return [], []
+
+    placeholders = ",".join("?" for _ in names)
+    entities = [
+        dict(row)
+        for row in conn.execute(
+            f"SELECT name, type, description FROM entities WHERE name IN ({placeholders})",
+            names,
+        )
+    ]
+    edges = [
+        dict(row)
+        for row in conn.execute(
+            f"SELECT src, dst, rel, description, weight FROM edges "
+            f"WHERE src IN ({placeholders}) AND dst IN ({placeholders})",
+            [*names, *names],
+        )
+    ]
+    return entities, edges
+
+
+def graph_payload(
+    conn: sqlite3.Connection,
+    community: int | None = None,
+    min_degree: int = 0,
+    limit: int = 500,
+) -> dict:
+    members = None
+    if community is not None:
+        members = [
+            row["name"]
+            for row in conn.execute(
+                "SELECT name FROM community_members WHERE community_id=?", (community,)
+            )
+        ]
+        if not members:
+            return {"nodes": [], "edges": []}
+
+    degrees = {
+        row["name"]: row["degree"]
+        for row in conn.execute(
+            "SELECT name, COUNT(*) AS degree FROM ("
+            "  SELECT src AS name FROM edges UNION ALL SELECT dst FROM edges"
+            ") GROUP BY name"
+        )
+    }
+    rows = conn.execute("SELECT name, type, description FROM entities").fetchall()
+    nodes = [
+        {
+            "id": row["name"],
+            "type": row["type"],
+            "description": row["description"],
+            "degree": degrees.get(row["name"], 0),
+        }
+        for row in rows
+        if degrees.get(row["name"], 0) >= min_degree
+        and (members is None or row["name"] in members)
+    ]
+    nodes.sort(key=lambda node: node["degree"], reverse=True)
+    nodes = nodes[:limit]
+    keep = {node["id"] for node in nodes}
+
+    edges = [
+        dict(row)
+        for row in conn.execute(
+            "SELECT src, dst, rel, description, weight FROM edges"
+        )
+        if row["src"] in keep and row["dst"] in keep
+    ]
+    return {"nodes": nodes, "edges": edges}

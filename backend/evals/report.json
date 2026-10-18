@@ -1,0 +1,88 @@
+{
+  "rows": [
+    {
+      "question": "Who founded NexusLabs?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "What did NexusLabs acquire and for how much?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "What is CortexGraph?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "Which regulator granted priority review to CureX?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "Who is Marcus Smith?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "What role does ApexCloud play?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "How is Alice Zhao connected to CureX?",
+      "expected_mode": "local",
+      "mode": "local",
+      "mode_ok": true,
+      "entities_ok": true,
+      "chunks_ok": true
+    },
+    {
+      "question": "What are the main themes across these documents?",
+      "expected_mode": "global",
+      "mode": "global",
+      "mode_ok": true,
+      "entities_ok": null,
+      "chunks_ok": null
+    },
+    {
+      "question": "Summarize the key partnerships.",
+      "expected_mode": "global",
+      "mode": "global",
+      "mode_ok": true,
+      "entities_ok": null,
+      "chunks_ok": null
+    },
+    {
+      "question": "What are the key findings in oncology?",
+      "expected_mode": "global",
+      "mode": "global",
+      "mode_ok": true,
+      "entities_ok": null,
+      "chunks_ok": null
+    }
+  ],
+  "mode_accuracy": 1.0,
+  "entity_recall": 1.0,
+  "chunk_recall": 1.0,
+  "recording_misses": 7
+}

@@ -1,0 +1,392 @@
+{
+  "_model": "openai/gpt-oss-20b",
+  "d60671c53b8c8d4be7c8afb09917eb8cb0b34ab84c24c5c06a2a752ec76f9aab": {
+    "entities": [
+      {
+        "name": "Alice Zhao",
+        "type": "PERSON",
+        "description": "Dr. Alice Zhao"
+      },
+      {
+        "name": "Marcus Smith",
+        "type": "PERSON",
+        "description": "Dr. Marcus Smith"
+      },
+      {
+        "name": "DeepBio",
+        "type": "ORGANIZATION",
+        "description": "DeepBio"
+      },
+      {
+        "name": "NexusLabs",
+        "type": "ORGANIZATION",
+        "description": "NexusLabs"
+      },
+      {
+        "name": "EMA",
+        "type": "ORGANIZATION",
+        "description": "European Medicines Agency"
+      },
+      {
+        "name": "CureX",
+        "type": "PRODUCT",
+        "description": "CureX drug"
+      },
+      {
+        "name": "ApexCloud",
+        "type": "ORGANIZATION",
+        "description": "ApexCloud"
+      },
+      {
+        "name": "HIPAA",
+        "type": "CONCEPT",
+        "description": "Health Insurance Portability and Accountability Act"
+      },
+      {
+        "name": "GDPR",
+        "type": "CONCEPT",
+        "description": "General Data Protection Regulation"
+      },
+      {
+        "name": "CortexGraph",
+        "type": "PRODUCT",
+        "description": "CortexGraph medical ontology"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "Alice Zhao",
+        "target": "Marcus Smith",
+        "relation_type": "PROMOTED_TO",
+        "description": "Promoted to Chief Science Officer of NexusLabs",
+        "weight": 0.9
+      },
+      {
+        "source": "EMA",
+        "target": "CureX",
+        "relation_type": "GRANTED_PRIORITY_REVIEW_TO",
+        "description": "Granted priority review status to CureX",
+        "weight": 0.8
+      },
+      {
+        "source": "ApexCloud",
+        "target": "CureX",
+        "relation_type": "ANNOUNCED_PARTITION_FOR",
+        "description": "Announced partition to host genomic sequencing and telemetry for CureX",
+        "weight": 0.7
+      },
+      {
+        "source": "ApexCloud",
+        "target": "CureX",
+        "relation_type": "HOSTS",
+        "description": "Hosts genomic sequencing and telemetry for CureX",
+        "weight": 0.7
+      },
+      {
+        "source": "ApexCloud",
+        "target": "HIPAA",
+        "relation_type": "COMPLIES_WITH",
+        "description": "Complies with HIPAA standards",
+        "weight": 0.6
+      },
+      {
+        "source": "ApexCloud",
+        "target": "GDPR",
+        "relation_type": "COMPLIES_WITH",
+        "description": "Complies with GDPR standards",
+        "weight": 0.6
+      },
+      {
+        "source": "NexusLabs",
+        "target": "ApexCloud",
+        "relation_type": "PARTNERS_WITH",
+        "description": "Jointly open-source parts of CortexGraph medical ontology",
+        "weight": 0.85
+      },
+      {
+        "source": "Alice Zhao",
+        "target": "ApexCloud",
+        "relation_type": "ANNOUNCED_OPEN_SOURCE",
+        "description": "Announced joint open-source of CortexGraph with NexusLabs",
+        "weight": 0.8
+      }
+    ]
+  },
+  "611fb2a03c511157c69d40075b7be38360c0a54e0eee06f72dbb1e67fec39a03": {
+    "entities": [
+      {
+        "name": "DeepBio",
+        "type": "ORGANIZATION",
+        "description": "biotechnology startup"
+      },
+      {
+        "name": "Zurich",
+        "type": "LOCATION",
+        "description": "city in Switzerland"
+      },
+      {
+        "name": "Dr. Marcus Smith",
+        "type": "PERSON",
+        "description": "molecular biologist, founder of DeepBio"
+      },
+      {
+        "name": "CureX",
+        "type": "PRODUCT",
+        "description": "synthetic peptide targeting aggressive solid tumors"
+      },
+      {
+        "name": "NexusLabs",
+        "type": "ORGANIZATION",
+        "description": "technology company that acquired DeepBio"
+      },
+      {
+        "name": "CortexGraph",
+        "type": "TECHNOLOGY",
+        "description": "software for protein-protein docking simulation"
+      },
+      {
+        "name": "computational immunology",
+        "type": "CONCEPT",
+        "description": "field of study in immunology using computational methods"
+      },
+      {
+        "name": "automated protein design",
+        "type": "CONCEPT",
+        "description": "design of proteins using automation"
+      },
+      {
+        "name": "protein-protein docking interactions",
+        "type": "CONCEPT",
+        "description": "interactions between proteins during docking"
+      },
+      {
+        "name": "preclinical phase",
+        "type": "CONCEPT",
+        "description": "preclinical testing stage of drug development"
+      },
+      {
+        "name": "solid tumors",
+        "type": "CONCEPT",
+        "description": "aggressive solid tumors targeted by CureX"
+      },
+      {
+        "name": "artificial intelligence",
+        "type": "CONCEPT",
+        "description": "AI technology"
+      },
+      {
+        "name": "biological research",
+        "type": "CONCEPT",
+        "description": "research in biology"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "DeepBio",
+        "target": "Dr. Marcus Smith",
+        "relation_type": "FOUNDED_BY",
+        "description": "founded by Dr. Marcus Smith in 2019",
+        "weight": 0.9
+      },
+      {
+        "source": "DeepBio",
+        "target": "Zurich",
+        "relation_type": "LOCATED_IN",
+        "description": "based in Zurich",
+        "weight": 0.8
+      },
+      {
+        "source": "DeepBio",
+        "target": "computational immunology",
+        "relation_type": "SPECIALIZES_IN",
+        "description": "specializes in computational immunology",
+        "weight": 0.7
+      },
+      {
+        "source": "DeepBio",
+        "target": "automated protein design",
+        "relation_type": "SPECIALIZES_IN",
+        "description": "specializes in automated protein design",
+        "weight": 0.7
+      },
+      {
+        "source": "Dr. Marcus Smith",
+        "target": "CureX",
+        "relation_type": "ENGINEERED",
+        "description": "engineered CureX with his team",
+        "weight": 0.9
+      },
+      {
+        "source": "NexusLabs",
+        "target": "DeepBio",
+        "relation_type": "ACQUIRED",
+        "description": "acquired DeepBio in November 2023 for $320 million",
+        "weight": 0.9
+      },
+      {
+        "source": "NexusLabs",
+        "target": "CortexGraph",
+        "relation_type": "DEPLOYED",
+        "description": "deployed CortexGraph to simulate protein-protein docking interactions for CureX",
+        "weight": 0.8
+      },
+      {
+        "source": "CortexGraph",
+        "target": "protein-protein docking interactions",
+        "relation_type": "SIMULATES",
+        "description": "simulates protein-protein docking interactions for CureX",
+        "weight": 0.8
+      },
+      {
+        "source": "CortexGraph",
+        "target": "preclinical phase",
+        "relation_type": "ACCELERATED",
+        "description": "accelerated preclinical phase of CureX by over eighteen months",
+        "weight": 0.8
+      },
+      {
+        "source": "CureX",
+        "target": "solid tumors",
+        "relation_type": "TARGETS",
+        "description": "targets aggressive solid tumors",
+        "weight": 0.8
+      },
+      {
+        "source": "artificial intelligence",
+        "target": "biological research",
+        "relation_type": "SYNERGY_WITH",
+        "description": "synergy between AI and biological research",
+        "weight": 0.7
+      }
+    ]
+  },
+  "6951b6c7cecc902effd0d93f080207005131946528b664516f1be2b81e137773": {
+    "entities": [
+      {
+        "name": "Dr. Alice Zhao",
+        "type": "PERSON",
+        "description": "former machine learning professor at MIT"
+      },
+      {
+        "name": "MIT",
+        "type": "ORGANIZATION",
+        "description": "Massachusetts Institute of Technology"
+      },
+      {
+        "name": "NexusLabs",
+        "type": "ORGANIZATION",
+        "description": "artificial intelligence research organization dedicated to building neuromorphic graph neural networks"
+      },
+      {
+        "name": "Boston",
+        "type": "LOCATION",
+        "description": "city where NexusLabs was founded"
+      },
+      {
+        "name": "CortexGraph",
+        "type": "TECHNOLOGY",
+        "description": "open-source graph-based reasoning framework designed to connect multi-modal unstructured data into queryable knowledge topologies"
+      },
+      {
+        "name": "ApexCloud",
+        "type": "ORGANIZATION",
+        "description": "premier decentralized cloud infrastructure provider"
+      },
+      {
+        "name": "H100 GPU clusters",
+        "type": "TECHNOLOGY",
+        "description": "high-bandwidth GPU clusters"
+      },
+      {
+        "name": "Distributed storage systems",
+        "type": "TECHNOLOGY",
+        "description": "distributed storage systems"
+      },
+      {
+        "name": "Multi-modal unstructured data",
+        "type": "CONCEPT",
+        "description": "type of data"
+      },
+      {
+        "name": "Queryable knowledge topologies",
+        "type": "CONCEPT",
+        "description": "knowledge representation"
+      },
+      {
+        "name": "Foundation models",
+        "type": "CONCEPT",
+        "description": "models trained for CortexGraph"
+      },
+      {
+        "name": "Neuromorphic graph neural networks",
+        "type": "CONCEPT",
+        "description": "type of neural networks"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "Dr. Alice Zhao",
+        "target": "NexusLabs",
+        "relation_type": "FOUNDED",
+        "description": "founded NexusLabs in 2021",
+        "weight": 0.95
+      },
+      {
+        "source": "NexusLabs",
+        "target": "Boston",
+        "relation_type": "LOCATED_IN",
+        "description": "located in Boston",
+        "weight": 0.9
+      },
+      {
+        "source": "NexusLabs",
+        "target": "CortexGraph",
+        "relation_type": "DEVELOPED",
+        "description": "developed CortexGraph",
+        "weight": 0.95
+      },
+      {
+        "source": "NexusLabs",
+        "target": "ApexCloud",
+        "relation_type": "PARTNERS_WITH",
+        "description": "entered multi-year strategic partnership with ApexCloud",
+        "weight": 0.9
+      },
+      {
+        "source": "ApexCloud",
+        "target": "H100 GPU clusters",
+        "relation_type": "PROVIDES",
+        "description": "provides high-bandwidth H100 GPU clusters",
+        "weight": 0.9
+      },
+      {
+        "source": "ApexCloud",
+        "target": "Distributed storage systems",
+        "relation_type": "PROVIDES",
+        "description": "provides distributed storage systems",
+        "weight": 0.9
+      },
+      {
+        "source": "CortexGraph",
+        "target": "Multi-modal unstructured data",
+        "relation_type": "CONNECTS",
+        "description": "connects multi-modal unstructured data",
+        "weight": 0.85
+      },
+      {
+        "source": "CortexGraph",
+        "target": "Queryable knowledge topologies",
+        "relation_type": "CONNECTS",
+        "description": "connects to queryable knowledge topologies",
+        "weight": 0.85
+      },
+      {
+        "source": "NexusLabs",
+        "target": "Neuromorphic graph neural networks",
+        "relation_type": "BUILDS",
+        "description": "dedicated to building neuromorphic graph neural networks",
+        "weight": 0.85
+      }
+    ]
+  }
+}
