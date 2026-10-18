@@ -19,6 +19,7 @@ export default function GraphPage() {
   const [minDegree, setMinDegree] = useState(false);
   const [showMentions, setShowMentions] = useState(true);
   const [showCooccur, setShowCooccur] = useState(true);
+  const [colorBy, setColorBy] = useState<"type" | "community">("community");
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<GraphNode | null>(null);
   const [error, setError] = useState("");
@@ -110,6 +111,17 @@ export default function GraphPage() {
             />
             co-occurrence
           </label>
+          <label>
+            color
+            <select
+              value={colorBy}
+              onChange={(event) => setColorBy(event.target.value as "type" | "community")}
+              aria-label="Colour nodes by"
+            >
+              <option value="community">community</option>
+              <option value="type">type</option>
+            </select>
+          </label>
           <span>
             {visibleNodes.length}
             {visibleNodes.length === nodes.length ? " shown" : ` of ${nodes.length}`}
@@ -121,7 +133,12 @@ export default function GraphPage() {
             <p>Add a document in the workspace. Entities and relations appear here once indexing finishes.</p>
           </div>
         ) : (
-          <GraphView nodes={visibleNodes} links={visibleLinks} onSelect={setSelected} />
+          <GraphView
+            nodes={visibleNodes}
+            links={visibleLinks}
+            colorBy={colorBy}
+            onSelect={setSelected}
+          />
         )}
       </section>
 

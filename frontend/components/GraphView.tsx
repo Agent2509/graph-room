@@ -16,15 +16,27 @@ const COLORS: Record<string, string> = {
   DOCUMENT: "#5f7f8c",
 };
 
-const colorOf = (node: GraphNode) => COLORS[node.type] ?? COLORS.CONCEPT;
+const COMMUNITY_COLORS = [
+  "#7fa6c9", "#8fbf9b", "#e0a458", "#c58fb5", "#8aa4d6",
+  "#d69a7a", "#a3c9a8", "#c9b47f", "#9bb8c4", "#b9a3c9",
+];
+
+const colorOf = (node: GraphNode, colorBy: "type" | "community") => {
+  if (colorBy === "community" && node.community != null) {
+    return COMMUNITY_COLORS[node.community % COMMUNITY_COLORS.length];
+  }
+  return COLORS[node.type] ?? COLORS.CONCEPT;
+};
 
 export default function GraphView({
   nodes,
   links,
+  colorBy,
   onSelect,
 }: {
   nodes: GraphNode[];
   links: GraphLink[];
+  colorBy: "type" | "community";
   onSelect: (node: GraphNode) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
@@ -45,6 +57,8 @@ export default function GraphView({
   // The canvas painter runs every frame; keep the current focus in a ref.
   const activeRef = useRef<Set<string> | null>(active);
   activeRef.current = active;
+  const colorByRef = useRef(colorBy);
+  colorByRef.current = colorBy;
 
   useEffect(() => {
     const element = container.current;
@@ -137,7 +151,7 @@ export default function GraphView({
           ctx.globalAlpha = alpha;
           ctx.beginPath();
           ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = colorOf(node);
+          ctx.fillStyle = colorOf(node, colorByRef.current);
           ctx.fill();
           if (node.type === "DOCUMENT") {
             ctx.lineWidth = 1.2 / scale;

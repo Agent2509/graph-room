@@ -545,6 +545,15 @@ select {
   backdrop-filter: blur(4px);
 }
 
+.graph-toolbar select {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: inherit;
+  font-size: 12px;
+  padding: 1px 4px;
+}
+
 .graph-toolbar label {
   display: flex;
   align-items: center;

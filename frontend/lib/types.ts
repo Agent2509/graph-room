@@ -31,6 +31,7 @@ export type GraphNode = {
   degree: number;
   name?: string;
   mentions?: number;
+  community?: number | null;
 };
 
 export type GraphLink = {

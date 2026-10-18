@@ -313,6 +313,8 @@ def find_spans(sentence: str) -> list[Span]:
             span.type = "ORGANIZATION"
         elif _follows_locative_cue(sentence, span.start):
             span.type = "LOCATION"
+        elif _looks_like_technology(span.name):
+            span.type = "TECHNOLOGY"
         if _is_common_word(span, lowered):
             continue
         typed.append(span)
@@ -364,6 +366,16 @@ def _is_common_word_form(token: str) -> bool:
             candidates.add(stem)
             candidates.add(stem + "e")
     return any(candidate in COMMON_WORDS for candidate in candidates)
+
+
+TECH_MARKERS = ("api", "sql", "json", "sdk", "sse", "jwt", "cors", "jsx", "tsx")
+
+
+def _looks_like_technology(name: str) -> bool:
+    lowered = name.lower()
+    if lowered.endswith((".js", ".ts", ".py", ".json")):
+        return True
+    return any(marker in lowered for marker in TECH_MARKERS)
 
 
 def _looks_like_organization(token: str) -> bool:

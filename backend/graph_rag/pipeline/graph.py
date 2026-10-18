@@ -252,6 +252,10 @@ def graph_payload(
             ") GROUP BY name"
         )
     }
+    communities = {
+        row["name"]: row["community_id"]
+        for row in conn.execute("SELECT name, community_id FROM community_members")
+    }
     rows = conn.execute("SELECT name, type, description FROM entities").fetchall()
     nodes = [
         {
@@ -259,6 +263,7 @@ def graph_payload(
             "type": row["type"],
             "description": row["description"],
             "degree": degrees.get(row["name"], 0),
+            "community": communities.get(row["name"]),
         }
         for row in rows
         if degrees.get(row["name"], 0) >= min_degree
