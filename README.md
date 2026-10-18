@@ -67,25 +67,28 @@ only — never written to disk, never shared between visitors. A server-side
 `GROQ_API_KEY` is not used by the API at all, so cloning this repo never spends someone
 else's quota.
 
-### One container
+### One origin (no Docker)
 
 ```bash
-docker compose up --build      # http://localhost:8000
+cd frontend && npm run build
+cd ../backend && STATIC_DIR=../frontend/out ../.venv/bin/uvicorn graph_rag.api.main:app --port 8000
+# or: make serve
 ```
 
-The image builds the Next.js export and serves it from FastAPI: one origin, no CORS, no
-Node runtime in production. `./data/app.db` is the whole state; back it up by copying it.
+FastAPI serves the exported frontend, so there is no CORS and no Node runtime:
+`http://localhost:8000` is the whole app. `data/app.db` is the whole state; back it up
+by copying the file.
 
 ## API
 
 | Route | Purpose |
 |---|---|
 | `GET /api/health` | status, provider, vector backend (no token required) |
-| `POST /api/documents` | file (`multipart`) or `text`+`filename` form; requires `X-LLM-Key`; returns `{document_id, chunks, job_id}` |
+| `POST /api/documents` | file (`multipart`) or `text`+`filename` form; `X-LLM-Key` only in `llm` extraction mode; returns `{document_id, chunks, job_id}` |
 | `GET /api/documents` | documents with chunk counts |
 | `DELETE /api/documents/{id}` | removes chunks, vectors, mentions; recomputes entities; refreshes communities |
 | `GET /api/jobs/{id}` | `queued → running → done/failed`, with phase and progress |
-| `POST /api/query` | `{question, mode}` → JSON answer + citations |
+| `POST /api/query` | `{question, mode, document_id?}` → JSON answer + citations |
 | `POST /api/query?stream=true` | SSE: `event: meta`, `event: delta` …, `event: done` |
 | `GET /api/graph` | nodes + edges for the canvas (`community`, `min_degree`, `limit`) |
 | `GET /api/stats` | counts, density, top entities, community reports |
@@ -199,6 +202,6 @@ Each is marked with a `shortcut:` comment in the code.
 
 ## Not verified here
 
-The Docker image was not built in this environment (`docker` is unavailable). The
-frontend was built (`next build`, static export) but not exercised in a browser by an
-automated test. Live Groq streaming was exercised once manually; CI uses the recording.
+The frontend was built (`next build`, static export) and exercised manually in Chrome,
+but not covered by an automated browser test. Live Groq streaming was exercised once
+manually; CI uses the recorded responses.

@@ -2,7 +2,7 @@ PY = ../.venv/bin/python
 PYTEST = ../.venv/bin/python -m pytest
 RUFF = ../.venv/bin/ruff
 
-.PHONY: api web test lint eval record install docker
+.PHONY: api web serve test lint eval record install
 
 install:
 	uv pip install --python .venv/bin/python -e backend
@@ -30,5 +30,6 @@ record:
 build:
 	cd frontend && npm run build
 
-docker:
-	docker compose up --build
+serve:
+	cd frontend && npm run build
+	cd backend && STATIC_DIR=../frontend/out $(PY) -m uvicorn graph_rag.api.main:app --port 8000
