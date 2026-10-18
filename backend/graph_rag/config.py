@@ -33,7 +33,7 @@ class Settings:
     extraction_batch_size: int = field(
         default_factory=lambda: int(os.getenv("EXTRACTION_BATCH_SIZE", "3"))
     )
-    max_llm_summaries: int = field(default_factory=lambda: int(os.getenv("MAX_LLM_SUMMARIES", "12")))
+    max_llm_summaries: int = field(default_factory=lambda: int(os.getenv("MAX_LLM_SUMMARIES", "6")))
     chunk_size: int = field(default_factory=lambda: int(os.getenv("CHUNK_SIZE", "800")))
     chunk_overlap: int = field(default_factory=lambda: int(os.getenv("CHUNK_OVERLAP", "120")))
 

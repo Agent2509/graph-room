@@ -129,7 +129,12 @@ class Database:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._local = threading.local()
-        self.conn().executescript(SCHEMA)
+        conn = self.conn()
+        conn.executescript(SCHEMA)
+        try:  # migration for databases created before summary provenance existed
+            conn.execute("ALTER TABLE communities ADD COLUMN source TEXT NOT NULL DEFAULT 'llm'")
+        except sqlite3.OperationalError:
+            pass
 
     def conn(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)

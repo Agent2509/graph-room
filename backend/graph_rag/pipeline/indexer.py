@@ -124,7 +124,9 @@ def index_document(
         report("embedding", min(done, total_vectors), total_vectors)
 
     report("communities", 0, 1)
-    communities.rebuild(db, llm=llm, embed=embed, max_llm=max_llm_summaries)
+    # Heuristic summaries only: the job finishes as soon as the graph is queryable.
+    # A follow-up "communities" job upgrades them with the LLM.
+    communities.rebuild(db, llm=None, embed=embed)
     report("communities", 1, 1)
     return "done"
 

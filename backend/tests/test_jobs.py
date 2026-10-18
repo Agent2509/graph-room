@@ -103,3 +103,19 @@ def test_embedding_never_runs_inside_a_write_transaction(db):
     index_document(db, MockLLM(), LockProbe(), "mock", document_id, batch_size=1,
                    max_llm_summaries=0)
     assert db.conn().execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"] > 0
+
+
+def test_index_job_does_not_spend_llm_calls_on_summaries(db, embed):
+    """Indexing must finish after extraction; summaries are a separate job."""
+    from graph_rag.pipeline.indexer import add_document, index_document
+
+    class Counting(MockLLM):
+        calls = 0
+
+        def generate_json(self, prompt, system=None):
+            Counting.calls += 1
+            return super().generate_json(prompt, system)
+
+    document_id, _ = add_document(db, "a.txt", "Alice founded NexusLabs.", 500, 50)
+    index_document(db, Counting(), embed, "mock", document_id, batch_size=3)
+    assert Counting.calls == 1

@@ -49,39 +49,40 @@ def rebuild(db: Database, llm=None, embed=None, max_llm: int = 12) -> int:
     """Recompute communities, reusing summaries whose members did not change."""
     conn = db.conn()
     memberships = detect(conn)
-    rows: list[tuple[int, list[str], str, str, str, float, list[float] | None]] = []
+    rows: list[tuple[int, list[str], str, str, str, float, list[float] | None, str]] = []
 
     for index, members in enumerate(memberships):
         digest = hashlib.sha1("\x1f".join(members).encode()).hexdigest()
         cached = conn.execute(
-            "SELECT title, summary, findings, rating FROM communities WHERE members_hash=? LIMIT 1",
+            "SELECT title, summary, findings, rating FROM communities "
+            "WHERE members_hash=? AND source='llm' LIMIT 1",
             (digest,),
         ).fetchone()
         if cached:
             title, summary, findings, rating = (
                 cached["title"], cached["summary"], cached["findings"], cached["rating"],
             )
+            source = "llm"
         else:
-            community = _summarize(
-                llm if llm and index < max_llm and len(members) >= 2 else None,
-                index, members, conn,
-            )
+            use_llm = llm if llm and index < max_llm and len(members) >= 2 else None
+            community = _summarize(use_llm, index, members, conn)
             title, summary, findings, rating = (
                 community.title, community.summary,
                 json.dumps(community.findings), community.rating,
             )
+            source = "llm" if use_llm is not None else "heuristic"
         vector = embed.one(f"{title}\n{summary}") if embed is not None else None
-        rows.append((index, members, title, summary, findings, rating, vector))
+        rows.append((index, members, title, summary, findings, rating, vector, source))
 
     with db.tx() as tx:
         tx.execute("DELETE FROM communities")
         tx.execute("DELETE FROM vec_items WHERE kind='community'")
-        for index, members, title, summary, findings, rating, vector in rows:
+        for index, members, title, summary, findings, rating, vector, source in rows:
             digest = hashlib.sha1("\x1f".join(members).encode()).hexdigest()
             tx.execute(
-                "INSERT INTO communities(id, title, summary, findings, rating, members_hash) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (index, title, summary, findings, rating, digest),
+                "INSERT INTO communities(id, title, summary, findings, rating, members_hash, source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (index, title, summary, findings, rating, digest, source),
             )
             tx.executemany(
                 "INSERT INTO community_members(community_id, name) VALUES (?, ?)",

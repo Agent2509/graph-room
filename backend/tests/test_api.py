@@ -112,3 +112,17 @@ def test_api_requires_the_callers_own_groq_key(tmp_path, embed):
         assert response.status_code == 400
         assert "Groq API key" in response.json()["detail"]
         assert client.post("/api/query", json={"question": "who?"}).status_code == 400
+
+
+def test_delete_document_while_a_job_is_running(client):
+    first = client.post(
+        "/api/documents", data={"text": "Alice founded NexusLabs.", "filename": "a"}
+    ).json()
+    assert _wait(client, first["job_id"])["status"] == "done"
+    client.post("/api/documents", data={"text": "DeepBio develops CureX.", "filename": "b"})
+
+    response = client.delete(f"/api/documents/{first['document_id']}")
+    assert response.status_code == 200
+    assert response.json()["chunks_removed"] == 1
+    remaining = [row["filename"] for row in client.get("/api/documents").json()]
+    assert remaining == ["b"]

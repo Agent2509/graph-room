@@ -96,24 +96,13 @@ async def create_document(
         # Content is stored but extraction never finished (failed job): retry it.
 
     job_id = state.runner.submit("index", _index_work(request, document_id, llm))
+    state.runner.submit("communities", _summarize_work(request, llm))
     return {"document_id": document_id, "chunks": chunks, "job_id": job_id,
             "duplicate": False}
 
 
-@router.delete("/{document_id}")
-def delete_document(request: Request, document_id: str, llm=Depends(get_llm)) -> dict:
+def _summarize_work(request: Request, llm):
     state = request.app.state
-    exists = state.db.conn().execute(
-        "SELECT 1 FROM documents WHERE id=?", (document_id,)
-    ).fetchone()
-    if not exists:
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    removed = graph_pipeline.delete_document(state.db, document_id)
-
-    # Communities are cheap to recompute and expensive to leave stale. Rebuild the
-    # memberships now (heuristic summaries) and re-summarize in the background.
-    indexer.reindex_communities(state.db, llm=None, embed=state.embed)
 
     def work(job_id: str) -> str:
         indexer.reindex_communities(
@@ -122,5 +111,23 @@ def delete_document(request: Request, document_id: str, llm=Depends(get_llm)) ->
         )
         return "done"
 
-    job_id = state.runner.submit("communities", work)
+    return work
+
+
+@router.delete("/{document_id}")
+async def delete_document(request: Request, document_id: str, llm=Depends(get_llm)) -> dict:
+    state = request.app.state
+    exists = state.db.conn().execute(
+        "SELECT 1 FROM documents WHERE id=?", (document_id,)
+    ).fetchone()
+    if not exists:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    removed = await asyncio.to_thread(graph_pipeline.delete_document, state.db, document_id)
+
+    # Communities are cheap to recompute and expensive to leave stale. Rebuild the
+    # memberships now (heuristic summaries) and re-summarize in the background.
+    await asyncio.to_thread(indexer.reindex_communities, state.db, None, state.embed)
+
+    job_id = state.runner.submit("communities", _summarize_work(request, llm))
     return {**removed, "job_id": job_id}
