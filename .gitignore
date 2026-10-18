@@ -25,3 +25,6 @@ frontend/out/
 .DS_Store
 .vscode/
 .idea/
+
+# Local agent config
+.opencode/
