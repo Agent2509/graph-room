@@ -61,7 +61,7 @@ ABBREVIATIONS = {"dr", "prof", "mr", "mrs", "ms", "inc", "corp", "ltd", "co", "v
 
 CODE_BLOCK = re.compile(r"```[\s\S]*?```")
 HEADING = re.compile(r"^#{1,6}.*$", re.MULTILINE)
-TABLE_ROW = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
+TABLE_ROW = re.compile(r"^.*\|.*$", re.MULTILINE)
 INLINE_CODE = re.compile(r"`[^`\n]{1,80}`")
 IDENTIFIER = re.compile(r"^[A-Z][A-Z0-9_]*$")
 CAP_RE = re.compile(

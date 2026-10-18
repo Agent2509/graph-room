@@ -150,3 +150,10 @@ def test_cooccurrence_pairs_are_kind_tagged_and_bounded(db, semantic_embed):
         per_node[edge["src"]] = per_node.get(edge["src"], 0) + 1
         per_node[edge["dst"]] = per_node.get(edge["dst"], 0) + 1
     assert max(per_node.values()) <= 3
+
+
+def test_markdown_tables_are_stripped_even_without_leading_pipes():
+    from graph_rag.pipeline.fast_extract import strip_code
+
+    table = "Route | Purpose\n--- | ---\nGET /api | status\n"
+    assert "Route" not in {span.name for span in find_spans(strip_code(table))}

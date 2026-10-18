@@ -1,6 +1,7 @@
 """Global search: rank community reports by similarity, then synthesize."""
 
 import json
+import re
 import sqlite3
 
 from graph_rag.pipeline import vectors
@@ -51,8 +52,13 @@ def prepare(
             "context": "No community reports are available yet. Index a document first.",
         }
 
+    def clean_title(title: str) -> str:
+        # heuristic summaries are titled "Cluster 4: ..."; the citation already
+        # prefixes the community id.
+        return re.sub(r"^Cluster\s+\d+:\s*", "", title)
+
     reports = "\n\n".join(
-        f"[Community {c['id']}: {c['title']}]\n"
+        f"[Community {c['id']}: {clean_title(c['title'])}]\n"
         f"Summary: {c['summary']}\n"
         f"Findings:\n" + "\n".join(f"  * {finding}" for finding in c["findings"])
         for c in communities
