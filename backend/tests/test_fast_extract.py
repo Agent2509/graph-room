@@ -152,6 +152,16 @@ def test_cooccurrence_pairs_are_kind_tagged_and_bounded(db, semantic_embed):
     assert max(per_node.values()) <= 3
 
 
+def test_file_references_and_generic_docs_are_not_entities():
+    text = "See ARCHITECTURE.md and setup.py. The Doc is a Document. Fine-tune the model."
+    entities, _ = fast_extract.extract([_chunk(text)], __import__("tests.conftest", fromlist=["SemanticEmbedder"]).SemanticEmbedder())
+    names = {entity.name for entity in entities}
+    assert "ARCHITECTURE.md" not in names
+    assert "Doc" not in names
+    assert "Document" not in names
+    assert "Fine-tune" in names
+
+
 def test_markdown_tables_are_stripped_even_without_leading_pipes():
     from graph_rag.pipeline.fast_extract import strip_code
 

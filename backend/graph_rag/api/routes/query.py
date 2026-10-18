@@ -25,6 +25,7 @@ class QueryRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     mode: Literal["auto", "local", "global"] = "auto"
     max_hops: int = Field(default=2, ge=1, le=3)
+    document_id: str | None = None
 
 
 def _sse(event: str, data: dict) -> str:
@@ -52,6 +53,7 @@ async def run_query(
             _stream(state, body, llm), media_type="text/event-stream", headers=SSE_HEADERS
         )
     result = await asyncio.to_thread(
-        service.answer, state.db, llm, state.embed, body.question, body.mode, body.max_hops
+        service.answer, state.db, llm, state.embed, body.question, body.mode,
+        body.max_hops, body.document_id,
     )
     return result.model_dump()

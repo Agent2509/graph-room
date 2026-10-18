@@ -60,7 +60,13 @@ COMMON_WORDS = {
     "slow", "sort", "source", "special", "static", "stop", "store", "strong", "sure",
     "switch", "target", "text", "track", "transform", "tune", "turn", "unique", "upper",
     "valid", "view", "wait", "wide", "write", "wrong", "zero", "deployment",
-    "enforce", "establish", "evaluate", "legal", "logic", "medium", "professional", "prove", "state-of-the-art", "stopping", "val",
+    "enforce", "establish", "evaluate", "legal", "logic", "medium", "professional",
+    "prove", "state-of-the-art", "stopping", "val", "ask", "doc", "document",
+    "documents", "grounded", "live", "prerequisites", "purpose", "step-by-step",
+    "amber", "circle", "click", "cyan", "dark", "diamond", "download", "drag",
+    "dropdown", "emerald", "flash", "hero", "hexagon", "hover", "interface", "label",
+    "mark", "message", "paste", "pill", "question", "rose", "rounded", "standard",
+    "storage", "system", "talk", "thank", "thought", "token", "unit", "zoom",
 }
 
 # Units are uppercase but never entities.

@@ -64,6 +64,10 @@ HEADING = re.compile(r"^#{1,6}.*$", re.MULTILINE)
 TABLE_ROW = re.compile(r"^.*\|.*$", re.MULTILINE)
 INLINE_CODE = re.compile(r"`[^`\n]{1,80}`")
 IDENTIFIER = re.compile(r"^[A-Z][A-Z0-9_]*$")
+FILE_REF = re.compile(
+    r"\.(md|markdown|py|ts|tsx|js|jsx|json|ya?ml|txt|pdf|csv|html|css|sh|toml|lock)$",
+    re.IGNORECASE,
+)
 CAP_RE = re.compile(
     r"\b[A-Z][\w&.'-]*(?:\s+(?:of|the|de|van|von)\s+[A-Z][\w&.'-]*"
     r"|\s+[A-Z][\w&.'-]*){0,5}"
@@ -127,6 +131,7 @@ def extract(
 ) -> tuple[list[ExtractedEntity], list[ExtractedEdge]]:
     """Extract entities and relations using spans + embedding-labelled verb phrases."""
     entities: dict[str, ExtractedEntity] = {}
+    occurrences: dict[str, int] = {}
     candidates: list[tuple[str, str, str, str, str, str]] = []  # chunk, sentence, src, mid, dst, types
 
     for chunk in chunks:
@@ -136,6 +141,8 @@ def extract(
                 continue
             for span in spans:
                 _remember_entity(entities, span, sentence, chunk.id)
+                key = span.name.lower()
+                occurrences[key] = occurrences.get(key, 0) + 1
             if len(spans) > MAX_SPANS_PER_SENTENCE:
                 continue
             for left, right in zip(spans, spans[1:], strict=False):
@@ -150,6 +157,11 @@ def extract(
                     (chunk.id, sentence, source.name, mid, right.name, spans[0].name)
                 )
 
+    entities = {
+        key: entity
+        for key, entity in entities.items()
+        if _keep_entity(entity, occurrences.get(key, 1))
+    }
     if not candidates:
         return list(entities.values()), []
 
@@ -293,6 +305,8 @@ def find_spans(sentence: str) -> list[Span]:
             continue
         if IDENTIFIER.match(span.name) and ("_" in span.name or any(c.isdigit() for c in span.name)):
             continue
+        if FILE_REF.search(span.name):
+            continue
         if lowered[0] in HONORIFICS:
             span.type = "PERSON"
         elif _looks_like_organization(lowered[-1]):
@@ -314,13 +328,42 @@ def _is_common_word(span: Span, lowered: list[str]) -> bool:
     if span.type != "CONCEPT" or len(lowered) != 1:
         return False
     token = lowered[0]
-    if token in UNITS:
+    if len(token) <= 1:
         return True
-    if any(char.isdigit() for char in token) or "-" in token or "_" in token:
+    if token in UNITS or _is_common_word_form(token):
+        return True
+    technical = (
+        any(char.isdigit() for char in token)
+        or "-" in token
+        or "_" in token
+        or (span.name.isupper() and len(span.name) >= 2)
+    )
+    if technical:
         return False
-    if span.name.isupper() and len(span.name) >= 2:
-        return False
-    return token in COMMON_WORDS or span.start == 0
+    return span.start == 0
+
+
+def _keep_entity(entity: ExtractedEntity, count: int) -> bool:
+    """A lone generic word that appears once is noise. Names, orgs and technical
+    tokens (digits, hyphens, internal caps) are always kept."""
+    if entity.type != "CONCEPT" or count >= 2:
+        return True
+    if " " in entity.name:
+        return True
+    return any(char.isdigit() for char in entity.name) or "-" in entity.name or (
+        entity.name != entity.name.capitalize()
+    )
+
+
+def _is_common_word_form(token: str) -> bool:
+    """Match inflections too: accepts -> accept, designed -> design, builds -> build."""
+    candidates = {token, token + "e"}
+    for suffix in ("s", "es", "ed", "ing"):
+        if token.endswith(suffix):
+            stem = token[: -len(suffix)]
+            candidates.add(stem)
+            candidates.add(stem + "e")
+    return any(candidate in COMMON_WORDS for candidate in candidates)
 
 
 def _looks_like_organization(token: str) -> bool:

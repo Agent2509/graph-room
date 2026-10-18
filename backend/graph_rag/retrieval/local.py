@@ -32,6 +32,19 @@ USER = """Question: {question}
 Answer with inline citations:"""
 
 
+def _no_evidence() -> dict:
+    return {
+        "mode": "local",
+        "system": SYSTEM,
+        "prompt": "",
+        "entities": [],
+        "edges": [],
+        "chunks": [],
+        "context": "No evidence in the corpus for that question. "
+        "Try another wording, another document, or add one.",
+    }
+
+
 def prepare(
     conn: sqlite3.Connection,
     embed,
@@ -40,7 +53,19 @@ def prepare(
     max_hops: int = 2,
     top_k_chunks: int = 5,
     max_nodes: int = 40,
+    document_id: str | None = None,
 ) -> dict:
+    allowed: set[str] | None = None
+    if document_id:
+        allowed = {
+            row["id"]
+            for row in conn.execute(
+                "SELECT id FROM chunks WHERE document_id=?", (document_id,)
+            )
+        }
+        if not allowed:
+            return _no_evidence()
+
     question_vector = embed.one(question)
     seeds = [ref for ref, _ in vectors.knn(conn, "entity", question_vector, top_k_entities)]
 
@@ -63,10 +88,18 @@ def prepare(
             )
         ]
 
-    dense_ids = [ref for ref, _ in vectors.knn(conn, "chunk", question_vector, top_k_chunks * 6)]
-    fused = fusion.rrf(
-        [mention_ids, bm25.search(conn, question, top_k_chunks * 6), dense_ids]
-    )
+    dense_ids = [
+        ref
+        for ref, _ in vectors.knn(
+            conn, "chunk", question_vector, max(top_k_chunks * 6, 60)
+        )
+    ]
+    bm25_ids = bm25.search(conn, question, max(top_k_chunks * 6, 60))
+    if allowed is not None:
+        mention_ids = [cid for cid in mention_ids if cid in allowed]
+        bm25_ids = [cid for cid in bm25_ids if cid in allowed]
+        dense_ids = [cid for cid in dense_ids if cid in allowed]
+    fused = fusion.rrf([mention_ids, bm25_ids, dense_ids])
     chosen = fused[:top_k_chunks]
 
     chunks = []
@@ -81,15 +114,7 @@ def prepare(
         chunks = [by_id[chunk_id] for chunk_id in chosen if chunk_id in by_id]
 
     if not entities and not chunks:
-        return {
-            "mode": "local",
-            "system": SYSTEM,
-            "prompt": "",
-            "entities": [],
-            "edges": [],
-            "chunks": [],
-            "context": "No evidence in the corpus for that question. Try another wording or add a document.",
-        }
+        return _no_evidence()
 
     entities_text = "\n".join(
         f"- {e['name']} ({e['type']}): {e['description']}" for e in entities

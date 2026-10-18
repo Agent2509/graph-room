@@ -16,6 +16,7 @@ def prepare(
     question: str,
     mode: str = "auto",
     max_hops: int = 2,
+    document_id: str | None = None,
 ) -> dict:
     conn = db.conn()
     if mode not in {"local", "global"}:
@@ -25,7 +26,7 @@ def prepare(
         mode = router.decide(llm, question, has_communities)
     if mode == "global":
         return global_.prepare(conn, embed, question)
-    return local.prepare(conn, embed, question, max_hops=max_hops)
+    return local.prepare(conn, embed, question, max_hops=max_hops, document_id=document_id)
 
 
 def answer(
@@ -35,8 +36,9 @@ def answer(
     question: str,
     mode: str = "auto",
     max_hops: int = 2,
+    document_id: str | None = None,
 ) -> RetrievalResult:
-    context = prepare(db, llm, embed, question, mode, max_hops)
+    context = prepare(db, llm, embed, question, mode, max_hops, document_id)
     text = llm.generate(context["prompt"], context["system"]) if context["prompt"] else ""
     return RetrievalResult(
         query=question,
@@ -56,8 +58,11 @@ async def stream_answer(
     question: str,
     mode: str = "auto",
     max_hops: int = 2,
+    document_id: str | None = None,
 ) -> AsyncIterator[tuple[str, dict]]:
-    context = await asyncio.to_thread(prepare, db, llm, embed, question, mode, max_hops)
+    context = await asyncio.to_thread(
+        prepare, db, llm, embed, question, mode, max_hops, document_id
+    )
     yield (
         "meta",
         {

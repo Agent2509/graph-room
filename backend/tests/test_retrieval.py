@@ -78,3 +78,18 @@ def test_empty_database_returns_no_evidence_without_calling_the_llm(db, embed):
 
     result = service.answer(db, Explodes(), embed, "anything about unicorns?", mode="local")
     assert "No evidence" in result.answer
+
+
+def test_document_scope_limits_chunks_to_that_document(db, embed):
+    document_a, _ = _ingest(db, embed, "Alice founded NexusLabs in Boston.", "a.txt")
+    _ingest(db, embed, "CureX treats tumors in Zurich.", "b.txt")
+
+    scoped = local.prepare(
+        db.conn(), embed, "Alice NexusLabs CureX Zurich", document_id=document_a
+    )
+    assert scoped["chunks"]
+    assert all(chunk["id"].startswith(document_a) for chunk in scoped["chunks"])
+
+    empty = local.prepare(db.conn(), embed, "anything", document_id="missing")
+    assert empty["prompt"] == ""
+    assert "No evidence" in empty["context"]

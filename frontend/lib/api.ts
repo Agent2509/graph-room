@@ -80,12 +80,17 @@ export type StreamEvent =
 export async function* askStream(
   question: string,
   mode: string,
+  documentId: string,
   signal: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
   const response = await fetch(`${API}/api/query?stream=true`, {
     method: "POST",
     headers: headers({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ question, mode }),
+    body: JSON.stringify({
+      question,
+      mode,
+      document_id: documentId || null,
+    }),
     signal,
   });
   if (!response.ok) {

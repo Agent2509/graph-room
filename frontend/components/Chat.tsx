@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { askStream, getLLMKey } from "@/lib/api";
+import { askStream, getLLMKey, listDocuments } from "@/lib/api";
 import { toHtml } from "@/lib/markdown";
+import { CHANGED } from "./StatusBar";
 import { KEY_CHANGED } from "./KeyPanel";
 import type { Citation } from "@/lib/types";
 
@@ -27,6 +28,8 @@ export default function Chat() {
   const [mode, setMode] = useState("auto");
   const [busy, setBusy] = useState(false);
   const [hasKey, setHasKey] = useState(false);
+  const [documents, setDocuments] = useState<{ id: string; filename: string }[]>([]);
+  const [documentId, setDocumentId] = useState("");
   const abort = useRef<AbortController | null>(null);
   const transcript = useRef<HTMLDivElement>(null);
 
@@ -44,6 +47,21 @@ export default function Chat() {
     };
   }, []);
 
+  useEffect(() => {
+    const load = () =>
+      listDocuments()
+        .then((rows) => {
+          setDocuments(rows);
+          setDocumentId((current) =>
+            current && rows.some((row) => row.id === current) ? current : "",
+          );
+        })
+        .catch(() => setDocuments([]));
+    load();
+    window.addEventListener(CHANGED, load);
+    return () => window.removeEventListener(CHANGED, load);
+  }, []);
+
   const send = async (question: string) => {
     if (!question.trim() || busy) return;
     setBusy(true);
@@ -59,7 +77,7 @@ export default function Chat() {
     let answer = "";
 
     try {
-      for await (const event of askStream(question, mode, controller.signal)) {
+      for await (const event of askStream(question, mode, documentId, controller.signal)) {
         if (event.type === "meta") {
           setTurns((previous) => {
             const next = [...previous];
@@ -169,6 +187,19 @@ export default function Chat() {
       </div>
 
       <div className="composer">
+        <select
+          value={documentId}
+          onChange={(event) => setDocumentId(event.target.value)}
+          aria-label="Document scope"
+          title="Limit retrieval to one document"
+        >
+          <option value="">all documents</option>
+          {documents.map((document) => (
+            <option key={document.id} value={document.id}>
+              {document.filename}
+            </option>
+          ))}
+        </select>
         <select value={mode} onChange={(event) => setMode(event.target.value)} aria-label="Search mode">
           <option value="auto">auto</option>
           <option value="local">local</option>

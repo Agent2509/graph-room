@@ -164,3 +164,23 @@ def test_deleting_the_last_document_empties_every_count(client):
     for key in ("documents", "chunks", "entities", "edges", "communities"):
         assert after[key] == 0, (key, after[key])
     assert client.get("/api/graph").json() == {"nodes": [], "edges": []}
+
+
+def test_query_can_be_scoped_to_one_document(client):
+    first = client.post(
+        "/api/documents",
+        data={"text": "Alice Zhao founded NexusLabs in Boston.", "filename": "a"},
+    ).json()
+    second = client.post(
+        "/api/documents", data={"text": "DeepBio develops CureX in Zurich.", "filename": "b"}
+    ).json()
+    assert _wait(client, first["job_id"])["status"] == "done"
+    assert _wait(client, second["job_id"])["status"] == "done"
+
+    scoped = client.post(
+        "/api/query",
+        json={"question": "NexusLabs DeepBio CureX", "mode": "local",
+              "document_id": first["document_id"]},
+    ).json()
+    assert scoped["chunks"]
+    assert all(chunk["id"].startswith(first["document_id"]) for chunk in scoped["chunks"])
