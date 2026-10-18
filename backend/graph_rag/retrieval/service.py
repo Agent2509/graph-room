@@ -19,6 +19,8 @@ def prepare(
     document_id: str | None = None,
 ) -> dict:
     conn = db.conn()
+    if document_id and mode != "global":
+        mode = "local"  # a scoped question is always about one document
     if mode not in {"local", "global"}:
         has_communities = (
             conn.execute("SELECT COUNT(*) AS c FROM communities").fetchone()["c"] > 0

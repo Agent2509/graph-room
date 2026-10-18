@@ -18,6 +18,9 @@ def get_stats(request: Request) -> dict:
         "entities": conn.execute("SELECT COUNT(*) AS c FROM entities").fetchone()["c"],
         "edges": conn.execute("SELECT COUNT(*) AS c FROM edges").fetchone()["c"],
         "communities": conn.execute("SELECT COUNT(*) AS c FROM communities").fetchone()["c"],
+        "cooccurrences": conn.execute(
+            "SELECT COUNT(*) AS c FROM (SELECT src, dst FROM chunk_pairs GROUP BY src, dst)"
+        ).fetchone()["c"],
     }
     top_entities = [
         dict(row)

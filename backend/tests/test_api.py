@@ -184,3 +184,38 @@ def test_query_can_be_scoped_to_one_document(client):
     ).json()
     assert scoped["chunks"]
     assert all(chunk["id"].startswith(first["document_id"]) for chunk in scoped["chunks"])
+
+
+def test_broken_pdf_is_a_client_error(client):
+    response = client.post(
+        "/api/documents",
+        files={"file": ("x.pdf", b"%PDF-1.4 not really", "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert "Could not read" in response.json()["detail"]
+
+
+def test_auto_mode_with_document_scope_stays_local_and_scoped(client):
+    first = client.post(
+        "/api/documents", data={"text": "Alice Zhao founded NexusLabs.", "filename": "a"}
+    ).json()
+    client.post("/api/documents", data={"text": "DeepBio develops CureX.", "filename": "b"})
+    assert _wait(client, first["job_id"])["status"] == "done"
+
+    scoped = client.post(
+        "/api/query",
+        json={"question": "DeepBio CureX NexusLabs", "mode": "auto",
+              "document_id": first["document_id"]},
+    ).json()
+    assert scoped["mode"] == "local"
+    assert scoped["chunks"]
+    assert all(chunk["id"].startswith(first["document_id"]) for chunk in scoped["chunks"])
+
+
+def test_jobs_are_listed(client):
+    created = client.post(
+        "/api/documents", data={"text": "Alice founded NexusLabs.", "filename": "n"}
+    ).json()
+    assert _wait(client, created["job_id"])["status"] == "done"
+    jobs = client.get("/api/jobs").json()
+    assert any(job["id"] == created["job_id"] for job in jobs)

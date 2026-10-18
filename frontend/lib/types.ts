@@ -51,6 +51,7 @@ export type Stats = {
   entities: number;
   edges: number;
   communities: number;
+  cooccurrences: number;
   density: number;
   top_entities: { name: string; type: string; degree: number }[];
   community_reports: {

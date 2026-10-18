@@ -67,7 +67,13 @@ async def create_document(
         raw = await file.read(cap + 1)
         check_upload_size(len(raw), cap)
         name = file.filename or "upload"
-        content = text_from_bytes(raw, name)
+        try:
+            content = text_from_bytes(raw, name)
+        except Exception as error:  # noqa: BLE001 - malformed uploads are client errors
+            raise HTTPException(
+                status_code=400,
+                detail=f"Could not read {name}: {type(error).__name__}. If it is a scan, OCR it first.",
+            ) from error
     elif text and text.strip():
         name = filename or "pasted"
         content = text

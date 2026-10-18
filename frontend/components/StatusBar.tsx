@@ -35,6 +35,9 @@ export default function StatusBar() {
           <b>{stats?.edges ?? "–"}</b> relations
         </span>
         <span>
+          <b>{stats?.cooccurrences ?? "–"}</b> co-occurrences
+        </span>
+        <span>
           <b>{stats?.chunks ?? "–"}</b> chunks
         </span>
       </div>

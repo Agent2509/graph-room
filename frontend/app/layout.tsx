@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter_Tight } from "next/font/google";
 import Link from "next/link";
 
+import JobWatcher from "@/components/JobWatcher";
 import StatusBar from "@/components/StatusBar";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </nav>
             <StatusBar />
           </header>
+          <JobWatcher />
           {children}
         </div>
       </body>

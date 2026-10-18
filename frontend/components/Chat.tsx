@@ -77,7 +77,8 @@ export default function Chat() {
     let answer = "";
 
     try {
-      for await (const event of askStream(question, mode, documentId, controller.signal)) {
+      const scope = mode === "global" ? "" : documentId;
+      for await (const event of askStream(question, mode, scope, controller.signal)) {
         if (event.type === "meta") {
           setTurns((previous) => {
             const next = [...previous];
@@ -191,7 +192,8 @@ export default function Chat() {
           value={documentId}
           onChange={(event) => setDocumentId(event.target.value)}
           aria-label="Document scope"
-          title="Limit retrieval to one document"
+          disabled={mode === "global"}
+          title={mode === "global" ? "Global search covers the whole corpus" : "Limit retrieval to one document"}
         >
           <option value="">all documents</option>
           {documents.map((document) => (

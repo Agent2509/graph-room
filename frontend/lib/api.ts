@@ -66,6 +66,8 @@ export const removeDocument = (id: string) =>
 
 export const getJob = (id: string) => fetch(`${API}/api/jobs/${id}`, { headers: headers() }).then(json<Job>);
 
+export const listJobs = () => fetch(`${API}/api/jobs`, { headers: headers() }).then(json<Job[]>);
+
 export const getStats = () => fetch(`${API}/api/stats`, { headers: headers() }).then(json<Stats>);
 
 export const getGraph = (params: URLSearchParams) =>

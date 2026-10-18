@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { addFile, addText, getJob, getLLMKey, listDocuments, removeDocument } from "@/lib/api";
+import { addFile, addText, getLLMKey, listDocuments, removeDocument } from "@/lib/api";
 import type { DocumentRow, Job } from "@/lib/types";
 
+import { JOBS_EVENT, KICK } from "./JobWatcher";
 import { KEY_CHANGED } from "./KeyPanel";
 import { CHANGED } from "./StatusBar";
 
@@ -16,7 +17,6 @@ export default function Ingest() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [hasKey, setHasKey] = useState(false);
-  const timers = useRef<number[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -29,34 +29,19 @@ export default function Ingest() {
   useEffect(() => {
     refresh();
     const syncKey = () => setHasKey(Boolean(getLLMKey()));
+    const onJobs = (event: Event) => {
+      setJobs((event as CustomEvent).detail as Job[]);
+    };
     syncKey();
     window.addEventListener(KEY_CHANGED, syncKey);
+    window.addEventListener(JOBS_EVENT, onJobs);
+    window.addEventListener(CHANGED, refresh);
     return () => {
       window.removeEventListener(KEY_CHANGED, syncKey);
-      timers.current.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener(JOBS_EVENT, onJobs);
+      window.removeEventListener(CHANGED, refresh);
     };
   }, [refresh]);
-
-  const track = useCallback(
-    (jobId: string) => {
-      const poll = async () => {
-        try {
-          const job = await getJob(jobId);
-          setJobs((previous) => [job, ...previous.filter((item) => item.id !== job.id)].slice(0, 3));
-          if (job.status === "done" || job.status === "failed") {
-            window.dispatchEvent(new Event(CHANGED));
-            refresh();
-            return;
-          }
-        } catch {
-          // transient errors while the job runs: keep polling
-        }
-        timers.current.push(window.setTimeout(poll, 800));
-      };
-      poll();
-    },
-    [refresh],
-  );
 
   const submitText = async () => {
     setError("");
@@ -71,7 +56,7 @@ export default function Ingest() {
         setNotice("That text is already indexed.");
       } else {
         setText("");
-        if (result.job_id) track(result.job_id);
+        if (result.job_id) window.dispatchEvent(new Event(KICK));
       }
       refresh();
     } catch (cause) {
@@ -87,7 +72,7 @@ export default function Ingest() {
       try {
         const result = await addFile(file);
         if (result.duplicate) setNotice(`${file.name} is already indexed.`);
-        else if (result.job_id) track(result.job_id);
+        else if (result.job_id) window.dispatchEvent(new Event(KICK));
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : `${file.name} failed`);
       }
@@ -99,7 +84,7 @@ export default function Ingest() {
     setError("");
     try {
       const result = await removeDocument(id);
-      if (result.job_id) track(result.job_id);
+      if (result.job_id) window.dispatchEvent(new Event(KICK));
       // Counts live in the header and the graph page: refresh them even when the
       // delete did not queue a job (fast extraction mode).
       window.dispatchEvent(new Event(CHANGED));
@@ -163,7 +148,9 @@ export default function Ingest() {
               <li key={job.id} className="job" data-status={job.status}>
                 <div className="job-head">
                   <span>
-                    {job.status === "failed" ? job.error : job.message || job.phase || job.status}
+                    {job.status === "failed"
+                      ? job.error
+                      : `${job.kind} · ${job.message || job.phase || job.status}`}
                   </span>
                   <span>{job.total ? `${job.done}/${job.total}` : ""}</span>
                 </div>
