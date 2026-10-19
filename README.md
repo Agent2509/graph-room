@@ -44,6 +44,11 @@ below ~100k vectors, and a second store means a document delete touching two dat
 with no transaction between them. The plan said LanceDB; the measurements said
 otherwise. The swap point is one module (`retrieval/vectors.py`).
 
+**Why not LightRAG or Neo4j?** Existing frameworks either need a separate graph server or
+spread state across several storage files. This one is an exercise in radical simplicity:
+documents, FTS5 BM25, sqlite-vec embeddings and recursive-CTE graph walks in one ACID
+file, so deleting a document and recomputing its mentions is a single transaction.
+
 ## Quickstart
 
 ```bash
