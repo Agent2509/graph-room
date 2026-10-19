@@ -36,7 +36,7 @@ Benchmarked on this machine before choosing storage (100k chunks, 384-dim):
 | Same vectors in numpy BLAS | 4.7 ms, but 154 MB resident and needs its own sync |
 | SQLite file size for 100k chunks | 162 MB |
 | Delete a document (chunks + vectors + graph, one transaction) | 0.26 s for 2k rows |
-| Test suite | 71 tests, **< 2 s**, no API key |
+| Test suite | 72 tests, **< 2 s**, no API key |
 | Retrieval evals (10 golden questions, replayed LLM) | **mode 1.00 · entity recall 1.00 · chunk recall 1.00** |
 
 Why one file instead of a vector database: LanceDB's own docs say brute force is fine
@@ -147,9 +147,23 @@ other writer.
 ## Tests and evals
 
 ```bash
-cd backend && ../.venv/bin/python -m pytest -q     # 71 tests, offline
-../.venv/bin/python backend/evals/run.py           # retrieval evals, offline
+cd backend && ../.venv/bin/python -m pytest -q     # 72 tests, offline
+../.venv/bin/python backend/evals/run.py                      # graph retrieval
+../.venv/bin/python backend/evals/run.py --retriever chunks   # chunks-only baseline
 ```
+
+**Does the graph actually help retrieval?**
+
+| retriever | entity recall | chunk recall | evidence recall |
+|---|---|---|---|
+| graph (entity seeds → subgraph → mentions + BM25 + dense) | 1.00 | 1.00 | 1.00 |
+| chunks only (BM25 + dense) | – | 1.00 | 1.00 |
+
+On ten questions over the sample corpus, graph traversal does **not** retrieve better than
+plain hybrid chunk search. What the graph adds is inspectable evidence — entity ids,
+relation labels, community reports — and a natural unit for document deletion. The honest
+position is that the baseline is the number to beat: when a larger corpus makes questions
+relational, this table is how you would find out.
 
 Tests use a hash-based fake embedder, so they need no model download and no key. The
 evals are different: they run the **real** pipeline (real chunker, extraction, graph,
@@ -176,7 +190,7 @@ backend/graph_rag/
   retrieval/    bm25, fusion, local, global, router, service
   jobs/         asyncio runner with SQLite state
   db.py         schema, WAL, migrations-by-creation
-backend/tests/  12 files, 71 tests
+backend/tests/  12 files, 72 tests
 backend/evals/  golden questions, recorder, runner
 frontend/       Next.js app: workspace + graph
 fixtures/       recorded LLM responses, frozen chunker output

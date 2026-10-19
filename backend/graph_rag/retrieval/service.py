@@ -17,6 +17,7 @@ def prepare(
     mode: str = "auto",
     max_hops: int = 2,
     document_id: str | None = None,
+    use_graph: bool = True,
 ) -> dict:
     conn = db.conn()
     if document_id and mode != "global":
@@ -26,7 +27,9 @@ def prepare(
         mode = router.decide(llm, question, has_communities)
     if mode == "global":
         return global_.prepare(conn, embed, question)
-    return local.prepare(conn, embed, question, max_hops=max_hops, document_id=document_id)
+    return local.prepare(
+        conn, embed, question, max_hops=max_hops, document_id=document_id, use_graph=use_graph
+    )
 
 
 def answer(

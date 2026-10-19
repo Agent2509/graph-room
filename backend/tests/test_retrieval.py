@@ -103,3 +103,11 @@ def test_document_scope_limits_chunks_to_that_document(db, embed):
     empty = local.prepare(db.conn(), embed, "anything", document_id="missing")
     assert empty["prompt"] == ""
     assert "No evidence" in empty["context"]
+
+
+def test_chunks_only_retrieval_ignores_the_graph(db, embed):
+    _ingest(db, embed, "Alice Zhao founded NexusLabs in Boston.")
+    context = local.prepare(db.conn(), embed, "Alice Zhao", use_graph=False)
+    assert context["entities"] == []
+    assert context["edges"] == []
+    assert context["chunks"]

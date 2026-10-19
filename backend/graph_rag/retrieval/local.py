@@ -54,6 +54,7 @@ def prepare(
     top_k_chunks: int = 5,
     max_nodes: int = 40,
     document_id: str | None = None,
+    use_graph: bool = True,
 ) -> dict:
     allowed: set[str] | None = None
     if document_id:
@@ -65,26 +66,29 @@ def prepare(
             return _no_evidence()
 
     question_vector = embed.one(question)
-    seeds = [ref for ref, _ in vectors.knn(conn, "entity", question_vector, top_k_entities)]
-
-    lowered = question.lower()
-    for row in conn.execute("SELECT name FROM entities"):
-        if row["name"].lower() in lowered and row["name"] not in seeds:
-            seeds.append(row["name"])
-
-    entities, edges = subgraph(conn, seeds[:8], max_hops=max_hops, max_nodes=max_nodes)
-    names = [entity["name"] for entity in entities]
-
+    entities: list[dict] = []
+    edges: list[dict] = []
     mention_ids: list[str] = []
-    if names:
-        placeholders = ",".join("?" for _ in names)
-        mention_ids = [
-            row["chunk_id"]
-            for row in conn.execute(
-                f"SELECT DISTINCT chunk_id FROM entity_mentions WHERE name IN ({placeholders})",
-                names,
-            )
-        ]
+
+    if use_graph:
+        seeds = [ref for ref, _ in vectors.knn(conn, "entity", question_vector, top_k_entities)]
+
+        lowered = question.lower()
+        for row in conn.execute("SELECT name FROM entities"):
+            if row["name"].lower() in lowered and row["name"] not in seeds:
+                seeds.append(row["name"])
+
+        entities, edges = subgraph(conn, seeds[:8], max_hops=max_hops, max_nodes=max_nodes)
+        names = [entity["name"] for entity in entities]
+        if names:
+            placeholders = ",".join("?" for _ in names)
+            mention_ids = [
+                row["chunk_id"]
+                for row in conn.execute(
+                    f"SELECT DISTINCT chunk_id FROM entity_mentions WHERE name IN ({placeholders})",
+                    names,
+                )
+            ]
 
     dense_ids = [
         ref for ref, _ in vectors.knn(conn, "chunk", question_vector, max(top_k_chunks * 6, 60))

@@ -44,12 +44,13 @@ def build_index(db: Database, llm, embed, model: str, extractor: str = "recorded
         )
 
 
-def score(db: Database, llm, embed) -> dict:
+def score(db: Database, llm, embed, use_graph: bool = True) -> dict:
     rows = []
     for case in load_golden():
-        context = service.prepare(db, llm, embed, case["question"], "auto")
+        context = service.prepare(db, llm, embed, case["question"], "auto", use_graph=use_graph)
         entity_names = " | ".join(item["name"].lower() for item in context["entities"])
         chunk_text = " ".join(item["text"].lower() for item in context["chunks"])
+        entity_text = entity_names + " " + chunk_text
         expected_entities = [name.lower() for name in case["entities"]]
         expected_terms = [term.lower() for term in case["terms"]]
         rows.append(
@@ -66,6 +67,12 @@ def score(db: Database, llm, embed) -> dict:
                 "chunks_ok": (
                     any(term in chunk_text for term in expected_terms) if expected_terms else None
                 ),
+                # same question, both retrievers: is the named entity visible at all?
+                "evidence_ok": (
+                    any(name in entity_text for name in expected_entities)
+                    if expected_entities
+                    else None
+                ),
             }
         )
 
@@ -75,11 +82,17 @@ def score(db: Database, llm, embed) -> dict:
     return {
         "rows": rows,
         "mode_accuracy": round(mean([row["mode_ok"] for row in rows]), 3),
-        "entity_recall": round(
-            mean([row["entities_ok"] for row in rows if row["entities_ok"] is not None]), 3
+        # Chunks-only retrieval has no entity nodes by design.
+        "entity_recall": (
+            round(mean([row["entities_ok"] for row in rows if row["entities_ok"] is not None]), 3)
+            if use_graph
+            else None
         ),
         "chunk_recall": round(
             mean([row["chunks_ok"] for row in rows if row["chunks_ok"] is not None]), 3
+        ),
+        "evidence_recall": round(
+            mean([row["evidence_ok"] for row in rows if row["evidence_ok"] is not None]), 3
         ),
     }
 
@@ -96,7 +109,8 @@ def print_table(report: dict) -> None:
     print(
         f"\nmode_accuracy={report['mode_accuracy']} "
         f"entity_recall={report['entity_recall']} "
-        f"chunk_recall={report['chunk_recall']}"
+        f"chunk_recall={report['chunk_recall']} "
+        f"evidence_recall={report['evidence_recall']}"
     )
 
 
@@ -108,6 +122,12 @@ def main() -> int:
         choices=["recorded", "fast"],
         default="recorded",
         help="recorded: replayed LLM extraction; fast: rule-based, no LLM",
+    )
+    parser.add_argument(
+        "--retriever",
+        choices=["graph", "chunks"],
+        default="graph",
+        help="graph: entity seeds + subgraph + mentions; chunks: BM25 + dense only",
     )
     parser.add_argument("--out", default=str(Path(__file__).with_name("report.json")))
     arguments = parser.parse_args()
@@ -127,14 +147,18 @@ def main() -> int:
             llm, model = recorded, recorded.model
 
         build_index(db, llm, embed, model, arguments.extractor)
-        report = score(db, llm, embed)
+        report = score(db, llm, embed, use_graph=arguments.retriever == "graph")
         if not arguments.live:
             report["recording_misses"] = getattr(llm, "misses", 0)
         print_table(report)
         Path(arguments.out).write_text(json.dumps(report, indent=2), encoding="utf-8")
         db.close()
 
-    failed = [name for name, minimum in THRESHOLDS.items() if report[name] < minimum]
+    failed = [
+        name
+        for name, minimum in THRESHOLDS.items()
+        if report[name] is not None and report[name] < minimum
+    ]
     if failed:
         print(f"FAILED thresholds: {', '.join(failed)}")
         return 1
