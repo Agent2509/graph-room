@@ -1,6 +1,6 @@
 # Graph Room
 
-[![ci](https://github.com/Agent2509/GRAPH-RAG/actions/workflows/ci.yml/badge.svg)](https://github.com/Agent2509/GRAPH-RAG/actions/workflows/ci.yml)
+[![ci](https://github.com/Agent2509/graph-room/actions/workflows/ci.yml/badge.svg)](https://github.com/Agent2509/graph-room/actions/workflows/ci.yml)
 
 A knowledge-graph RAG system in a single SQLite file. Drop in documents, the pipeline
 extracts entities and relations with an LLM, clusters them with Louvain, and answers
